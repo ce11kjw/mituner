@@ -141,6 +141,39 @@ case "$cmd" in
     fi
     ;;
 
+  running)
+    # 列出当前运行中的第三方应用（方案C）
+    ps -A -o NAME 2>/dev/null | \
+      grep -E '^(com|me|org|io|cn)\.' | \
+      grep -v ':' | \
+      grep -vE '^(com\.android|com\.miui|com\.mediatek|com\.xiaomi|com\.google\.android)' | \
+      sort -u
+    ;;
+
+  candidates)
+    # 候选应用列表：未在白名单 + 关键词游戏优先排序
+    # 输出：优先级<TAB>包名  （0=关键词命中/运行中，1=运行中，2=其他）
+    rebuild
+    inlist=/tmp/mt_inlist.$$
+    cp "$GL" "$inlist" 2>/dev/null
+    ps -A -o NAME 2>/dev/null | grep -E '^(com|me|org|io|cn)\.' | grep -v ':' | sort -u > /tmp/mt_run.$$ 2>/dev/null
+    pm list packages -3 2>/dev/null | sed 's/^package://' | sort -u > /tmp/mt_all.$$ 2>/dev/null
+    awk '
+      FILENAME==ARGV[1] { inl[$0]=1; next }
+      FILENAME==ARGV[2] { run[$0]=1; next }
+      FILENAME==ARGV[3] {
+        pkg=$0
+        if (pkg in inl) next
+        kw = (pkg ~ /game|tmgp|miHoYo|Hoyo|netease|kurogame|hypergryph|papegames|pubg|sgame|lolm|mihoyo|Yuanshen|hkrpg|Nap|bh3|l22|nshm|yysls|mingchao|haru/) ? 0 : 2
+        if (kw == 0 && (pkg in run)) pr = 0
+        else if (kw == 0) pr = 1
+        else if (pkg in run) pr = 2
+        else pr = 3
+        printf "%d\t%s\n", pr, pkg
+      }' "$inlist" /tmp/mt_run.$$ /tmp/mt_all.$$ | sort -n
+    rm -f "$inlist" /tmp/mt_run.$$ /tmp/mt_all.$$
+    ;;
+
   reload)
     notify
     echo "OK"

@@ -308,11 +308,31 @@ switch_state() {
 }
 
 # ---------- 主循环 ----------
+# ★ 融合：确保 battd（电池管家）在运行
+ensure_battd() {
+  local PIDF=/data/adb/battery-manager/battd.pid
+  local BIN=/data/adb/modules/mituner/bin/battd
+  if [ -f "$PIDF" ]; then
+    local p=$(cat "$PIDF" 2>/dev/null)
+    if [ -n "$p" ] && [ -d "/proc/$p" ]; then
+      local c=$(tr "\0" " " < /proc/$p/cmdline 2>/dev/null)
+      case "$c" in *battd*) dbg "battd 已在运行 pid=$p"; return 0;; esac
+    fi
+  fi
+  if [ -x "$BIN" ]; then
+    mkdir -p /data/adb/battery-manager
+    /data/adb/ap/bin/busybox setsid "$BIN" >/dev/null 2>&1 &
+    log "已启动 battd"
+  fi
+}
+
 log "=== service.sh 启动 (pid=$$) ==="
 i=0
 while [ "$(getprop sys.boot_completed)" != "1" ] && [ $i -lt 180 ]; do
   sleep 2; i=$((i+1))
 done
+$(ensure_battd 2>/dev/null)
+
 log "开机完成"
 
 STATE=$(decide)
@@ -339,10 +359,6 @@ while true; do
     fi
   fi
 
-  # ★ 充电上限自动控制（每轮检查）
-  if [ -f "$BK/charge_cap" ]; then
-    sh $MODDIR/chargectl.sh applycap >/dev/null 2>&1
-  fi
 
   NEW=$(decide)
 

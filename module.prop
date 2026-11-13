@@ -1,7 +1,7 @@
 id=mituner
 name=MiTuner 系统调优
-version=v1.1.0
-versionCode=110
+version=v1.2.0
+versionCode=120
 author=aplm123
-description=MTK/小米设备系统调优。不降频、不减性能，只减少浪费：优化内存回收、IO 预读、调度响应，按「游戏/日常/息屏」三态自动切换。内置 109 款大型/3A 游戏白名单，游戏时自动放开性能，息屏时省电。支持 APatch/KernelSU/Magisk，自带 WebUI。
+description=MTK/小米设备系统调优。不降频、不减性能，只减少浪费：优化内存回收、IO 预读、调度响应，按「游戏/日常/息屏」三态自动切换。内置 109 款大型/3A 游戏，WebUI 可增删（立即生效）。支持热更新，装新版本无需重启手机。
 updateJson=https://raw.githubusercontent.com/ce11kjw/mituner/main/update.json

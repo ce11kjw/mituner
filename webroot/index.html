@@ -4,144 +4,193 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0a0e17">
-<title>MiTuner 系统调优</title>
+<title>MiTuner</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
-  --bg:#0a0e17;--card:#111827;--card2:#161f2e;--line:#1e293b;
-  --txt:#e6edf7;--dim:#7b8ca6;--ok:#22d3ee;--warn:#fbbf24;--err:#f43f5e;--lime:#a3e635;--purple:#a78bfa;
+  --bg:#0a0e17;--card:#111827;--card2:#161f2e;--card3:#1a2436;--line:#1e293b;
+  --txt:#e6edf7;--dim:#7b8ca6;--ok:#22d3ee;--warn:#fbbf24;--err:#f43f5e;
+  --lime:#a3e635;--purple:#a78bfa;--blue:#60a5fa;
 }
 body{background:var(--bg);color:var(--txt);
   font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",system-ui,sans-serif;
-  padding:16px 14px calc(28px + env(safe-area-inset-bottom));
+  padding:14px 12px calc(84px + env(safe-area-inset-bottom));
   min-height:100vh;font-size:15px;line-height:1.5}
-.wrap{max-width:520px;margin:0 auto}
-header{display:flex;align-items:center;gap:11px;margin-bottom:18px}
-.logo{width:44px;height:44px;border-radius:13px;flex:0 0 44px;
-  background:linear-gradient(135deg,var(--purple),var(--ok));
-  display:flex;align-items:center;justify-content:center;font-size:22px;
-  box-shadow:0 4px 16px rgba(167,139,250,.3)}
-h1{font-size:19px;font-weight:650;letter-spacing:.3px}
-.sub{font-size:12px;color:var(--dim);margin-top:2px;font-weight:400}
+.wrap{max-width:540px;margin:0 auto}
 
-.hero{background:linear-gradient(135deg,rgba(167,139,250,.12),rgba(34,211,238,.06));
-  border:1px solid rgba(167,139,250,.26);border-radius:17px;padding:19px 17px;
-  margin-bottom:13px;position:relative;overflow:hidden}
-.hero:before{content:'';position:absolute;top:-40%;right:-16%;width:170px;height:170px;
-  background:radial-gradient(circle,rgba(167,139,250,.18),transparent 68%);border-radius:50%}
-.hero-row{display:flex;align-items:center;gap:14px;position:relative}
-.bigmode{font-size:26px;font-weight:750;line-height:1.1;letter-spacing:-.5px;
+/* 顶栏 */
+header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.logo{width:40px;height:40px;border-radius:12px;flex:0 0 40px;
+  background:linear-gradient(135deg,var(--purple),var(--ok));
+  display:flex;align-items:center;justify-content:center;font-size:20px;
+  box-shadow:0 4px 14px rgba(167,139,250,.28)}
+h1{font-size:17px;font-weight:650}
+.sub{font-size:11px;color:var(--dim);margin-top:1px}
+.hdr-badge{margin-left:auto;font-size:10px;padding:4px 9px;border-radius:14px;
+  background:rgba(34,211,238,.12);color:var(--ok);border:1px solid rgba(34,211,238,.3)}
+
+/* 主状态 */
+.hero{background:linear-gradient(135deg,rgba(167,139,250,.13),rgba(34,211,238,.05));
+  border:1px solid rgba(167,139,250,.25);border-radius:16px;padding:16px;
+  margin-bottom:11px;position:relative;overflow:hidden}
+.hero:before{content:'';position:absolute;top:-50%;right:-18%;width:160px;height:160px;
+  background:radial-gradient(circle,rgba(167,139,250,.16),transparent 70%);border-radius:50%}
+.hero-row{display:flex;align-items:center;gap:12px;position:relative}
+.bigmode{font-size:24px;font-weight:750;letter-spacing:-.4px;
   background:linear-gradient(135deg,var(--purple),var(--ok));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero-lbl{font-size:12px;color:var(--dim);margin-top:4px}
-.badge{margin-left:auto;font-size:11px;font-weight:700;padding:6px 12px;
-  border-radius:20px;white-space:nowrap}
-.b-game{background:rgba(244,63,94,.16);color:var(--err);border:1px solid rgba(244,63,94,.36)}
-.b-normal{background:rgba(34,211,238,.16);color:var(--ok);border:1px solid rgba(34,211,238,.36)}
-.b-idle{background:rgba(163,230,53,.16);color:var(--lime);border:1px solid rgba(163,230,53,.36)}
+.hero-lbl{font-size:11px;color:var(--dim);margin-top:3px}
+.badge{margin-left:auto;font-size:10.5px;font-weight:700;padding:5px 11px;
+  border-radius:18px;white-space:nowrap}
+.b-game{background:rgba(244,63,94,.16);color:var(--err);border:1px solid rgba(244,63,94,.34)}
+.b-normal{background:rgba(34,211,238,.16);color:var(--ok);border:1px solid rgba(34,211,238,.34)}
+.b-idle{background:rgba(163,230,53,.16);color:var(--lime);border:1px solid rgba(163,230,53,.34)}
 
-.card{background:var(--card);border:1px solid var(--line);border-radius:15px;
-  padding:15px 16px;margin-bottom:12px}
-.card-title{font-size:12px;color:var(--dim);font-weight:600;letter-spacing:1.2px;
-  text-transform:uppercase;margin-bottom:12px;display:flex;
+/* 卡片 */
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+  padding:14px;margin-bottom:10px}
+.card-title{font-size:11px;color:var(--dim);font-weight:650;letter-spacing:1.1px;
+  text-transform:uppercase;margin-bottom:11px;display:flex;
   align-items:center;justify-content:space-between;gap:8px}
+.card-title .val{font-size:10px;letter-spacing:0;color:var(--lime)}
 
-.kv{display:flex;justify-content:space-between;align-items:center;padding:8px 0;
-  border-bottom:1px solid rgba(30,41,59,.55);font-size:13.5px}
+/* 键值 */
+.kv{display:flex;justify-content:space-between;align-items:center;padding:7px 0;
+  border-bottom:1px solid rgba(30,41,59,.5);font-size:13px}
 .kv:last-child{border-bottom:none}
-.k{color:var(--dim);font-size:12.5px;flex:0 0 auto;margin-right:10px}
-.v{font-family:ui-monospace,Menlo,monospace;font-size:12px;text-align:right;
-  word-break:break-all;max-width:62%;color:var(--txt)}
-.v.g{color:var(--lime)}.v.r{color:var(--err)}.v.y{color:var(--warn)}.v.c{color:var(--ok)}
+.k{color:var(--dim);font-size:12px;flex:0 0 auto;margin-right:10px}
+.v{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;text-align:right;
+  word-break:break-all;max-width:60%;color:var(--txt)}
+.v.g{color:var(--lime)}.v.r{color:var(--err)}.v.y{color:var(--warn)}
+.v.c{color:var(--ok)}.v.b{color:var(--blue)}.v.p{color:var(--purple)}
 
-.modes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px}
-.mode-box{background:var(--card2);border:1px solid transparent;border-radius:11px;
-  padding:11px 9px;text-align:center;font-size:11.5px;line-height:1.45;transition:.2s}
-.mode-box b{display:block;font-size:13px;margin-bottom:4px;font-weight:650}
+/* 三态格 */
+.modes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.mode-box{background:var(--card2);border:1px solid transparent;border-radius:10px;
+  padding:10px 7px;text-align:center;font-size:11px;line-height:1.4;transition:.2s}
+.mode-box b{display:block;font-size:12.5px;margin-bottom:3px;font-weight:650}
 .mode-box.on{border-color:currentColor;box-shadow:0 0 0 1px currentColor inset}
-.mode-game{color:var(--err)}.mode-normal{color:var(--ok)}.mode-idle{color:var(--lime)}
+.mg{color:var(--err)}.mn{color:var(--ok)}.mi{color:var(--lime)}
 
-.btns{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}
-button{padding:12px;border-radius:11px;border:1px solid var(--line);
-  background:var(--card2);color:var(--txt);font-size:13.5px;font-weight:600;
-  font-family:inherit;cursor:pointer;transition:.16s}
+/* 按钮 */
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btns.g3{grid-template-columns:1fr 1fr 1fr}
+button{padding:11px;border-radius:10px;border:1px solid var(--line);
+  background:var(--card2);color:var(--txt);font-size:13px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:.15s}
 button:active{transform:scale(.97);background:#1b2637}
-button:disabled{opacity:.45;cursor:not-allowed}
+button:disabled{opacity:.4;cursor:not-allowed}
 button.primary{background:linear-gradient(135deg,rgba(167,139,250,.9),rgba(34,211,238,.82));
   color:#06121a;border:none}
-button.ok{color:var(--lime);border-color:rgba(163,230,53,.35)}
-button.sm{padding:8px 12px;font-size:12px;border-radius:9px}
+button.ok{color:var(--lime);border-color:rgba(163,230,53,.32)}
+button.danger{color:var(--err);border-color:rgba(244,63,94,.32)}
+button.sm{padding:7px 10px;font-size:11.5px;border-radius:8px}
 button.full{grid-column:1/-1}
+button.on{background:rgba(163,230,53,.15);border-color:rgba(163,230,53,.5);color:var(--lime)}
 
-.note{font-size:11.5px;color:var(--dim);line-height:1.65;padding:11px 13px;
-  background:rgba(30,41,59,.35);border-radius:10px;
-  border-left:2.5px solid var(--purple);margin-top:11px}
+/* 输入 */
+.inp{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--line);
+  background:var(--card2);color:var(--txt);font-size:13px;font-family:inherit;
+  outline:none;transition:.15s}
+.inp:focus{border-color:var(--purple)}
+.inp::placeholder{color:#4a5a72}
+.inp-row{display:flex;gap:7px;margin-bottom:8px}
+
+/* 滑块 */
+.slider-row{display:flex;align-items:center;gap:10px;padding:9px 0;
+  border-bottom:1px solid rgba(30,41,59,.5)}
+.slider-row:last-child{border-bottom:none}
+.slider-lbl{flex:0 0 112px;font-size:11.5px;color:var(--dim);line-height:1.3}
+.slider-lbl small{display:block;font-size:9.5px;color:#4a5a72;margin-top:1px}
+input[type=range]{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;
+  background:var(--line);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;
+  border-radius:50%;background:var(--purple);cursor:pointer;
+  box-shadow:0 0 0 3px rgba(167,139,250,.2)}
+.slider-val{flex:0 0 52px;text-align:right;font-family:ui-monospace,Menlo,monospace;
+  font-size:11.5px;color:var(--lime)}
+
+/* 提示 */
+.tip{border-radius:10px;padding:11px 13px;font-size:12px;
+  line-height:1.6;margin-bottom:10px;display:none}
+.err-tip{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.26);color:#fda4b4}
+.ok-tip{background:rgba(163,230,53,.1);border:1px solid rgba(163,230,53,.26);color:var(--lime)}
+.note{font-size:11px;color:var(--dim);line-height:1.6;padding:10px 12px;
+  background:rgba(30,41,59,.32);border-radius:9px;
+  border-left:2.5px solid var(--purple);margin-top:10px}
 .note b{color:var(--purple);font-weight:600}
-footer{text-align:center;font-size:11px;color:#3f4d63;margin-top:20px;line-height:1.9}
-.tip{border-radius:11px;padding:12px 14px;font-size:12.5px;
-  line-height:1.65;margin-bottom:12px;display:none}
-.err-tip{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.28);color:#fda4b4}
-.ok-tip{background:rgba(163,230,53,.1);border:1px solid rgba(163,230,53,.28);color:var(--lime)}
-.spin{display:inline-block;width:11px;height:11px;border:2px solid var(--dim);
-  border-top-color:var(--purple);border-radius:50%;
-  animation:sp .7s linear infinite;vertical-align:-1px;margin-right:5px}
-@keyframes sp{to{transform:rotate(360deg)}}
+.note.warn{border-left-color:var(--warn)}
+.note.warn b{color:var(--warn)}
 
-.games-list{max-height:280px;overflow-y:auto;margin-top:4px;
-  -webkit-overflow-scrolling:touch}
-.games-list::-webkit-scrollbar{width:3px}
-.games-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
-.gitem{display:flex;align-items:center;gap:8px;padding:8px 0;
-  font-size:12px;border-bottom:1px solid rgba(30,41,59,.4)}
+/* 列表 */
+.list{max-height:300px;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  margin-top:6px}
+.list::-webkit-scrollbar{width:3px}
+.list::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
+.gitem{display:flex;align-items:center;gap:8px;padding:8px 0;font-size:12px;
+  border-bottom:1px solid rgba(30,41,59,.4)}
 .gitem:last-child{border-bottom:none}
 .gitem.hit .gname{color:var(--err);font-weight:700}
 .gname{color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gpkg{color:var(--dim);font-size:10px;flex:0 0 auto;max-width:44%;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right;
   font-family:ui-monospace,Menlo,monospace}
-.gdel{flex:0 0 auto;width:24px;height:24px;border-radius:7px;border:none;
-  background:rgba(244,63,94,.14);color:var(--err);font-size:15px;
+.gdel{flex:0 0 auto;width:23px;height:23px;border-radius:6px;border:none;
+  background:rgba(244,63,94,.13);color:var(--err);font-size:14px;
   display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
-.gdel:active{background:rgba(244,63,94,.35)}
-
-.inp{width:100%;padding:11px 13px;border-radius:11px;border:1px solid var(--line);
-  background:var(--card2);color:var(--txt);font-size:13px;font-family:inherit;
-  outline:none;transition:.16s}
-.inp:focus{border-color:var(--purple)}
-.inp::placeholder{color:#4a5a72}
-.inp-row{display:flex;gap:8px;margin-bottom:9px}
-
-.picker{max-height:340px;overflow-y:auto;margin-top:10px;
-  border:1px solid var(--line);border-radius:11px;background:var(--card2)}
+.gdel:active{background:rgba(244,63,94,.32)}
+.picker{border:1px solid var(--line);border-radius:10px;background:var(--card2);
+  max-height:320px;overflow-y:auto;margin-top:9px}
 .picker::-webkit-scrollbar{width:3px}
 .picker::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
-.pitem{display:flex;align-items:center;gap:10px;padding:9px 12px;
+.pitem{display:flex;align-items:center;gap:9px;padding:9px 11px;
   border-bottom:1px solid rgba(30,41,59,.4);cursor:pointer;transition:.14s}
 .pitem:last-child{border-bottom:none}
-.pitem:active{background:rgba(167,139,250,.1)}
-.pitem.sel{background:rgba(34,211,238,.1)}
-.pchk{width:18px;height:18px;flex:0 0 18px;border-radius:5px;
+.pitem:active{background:rgba(167,139,250,.09)}
+.pitem.sel{background:rgba(34,211,238,.09)}
+.pchk{width:17px;height:17px;flex:0 0 17px;border-radius:5px;
   border:1.5px solid var(--line);display:flex;align-items:center;
-  justify-content:center;font-size:11px;color:#06121a}
+  justify-content:center;font-size:10px;color:#06121a}
 .pitem.sel .pchk{background:var(--ok);border-color:var(--ok)}
 .pinfo{flex:1;overflow:hidden}
-.ppkg{font-size:11.5px;color:var(--txt);font-family:ui-monospace,Menlo,monospace;
+.ppkg{font-size:11px;color:var(--txt);font-family:ui-monospace,Menlo,monospace;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.prun{font-size:9.5px;padding:2px 6px;border-radius:4px;flex:0 0 auto;
-  background:rgba(163,230,53,.16);color:var(--lime)}
-.pkw{font-size:9.5px;padding:2px 6px;border-radius:4px;flex:0 0 auto;
-  background:rgba(244,63,94,.16);color:var(--err)}
-.picker-bar{display:flex;gap:8px;margin-top:10px}
-.picker-bar button{flex:1}
+.tagrun{font-size:9px;padding:2px 5px;border-radius:4px;flex:0 0 auto;
+  background:rgba(163,230,53,.15);color:var(--lime)}
+.tagkw{font-size:9px;padding:2px 5px;border-radius:4px;flex:0 0 auto;
+  background:rgba(244,63,94,.15);color:var(--err)}
+.group-hd{font-size:10px;color:var(--dim);padding:7px 11px 3px;
+  background:rgba(30,41,59,.55);position:sticky;top:0;z-index:1;
+  letter-spacing:.4px;font-weight:600}
 
-.tabs{display:flex;gap:6px;margin-bottom:12px}
-.tab{flex:1;padding:9px;border-radius:10px;background:var(--card2);
-  border:1px solid transparent;color:var(--dim);font-size:12px;
-  font-weight:600;text-align:center;cursor:pointer;transition:.16s}
-.tab.on{background:rgba(167,139,250,.14);border-color:rgba(167,139,250,.4);color:var(--purple)}
-.group-hd{font-size:10.5px;color:var(--dim);padding:8px 12px 4px;
-  background:rgba(30,41,59,.5);position:sticky;top:0;z-index:1;
-  letter-spacing:.5px;font-weight:600}
+/* 日志 */
+.logbox{background:#0a0f18;border:1px solid var(--line);border-radius:9px;
+  padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:10px;
+  line-height:1.65;max-height:340px;overflow-y:auto;color:#8fa3bf;
+  white-space:pre-wrap;word-break:break-all}
+.logbox::-webkit-scrollbar{width:3px}
+.logbox::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
+
+/* 底部导航 */
+nav{position:fixed;bottom:0;left:0;right:0;z-index:100;
+  background:rgba(10,14,23,.96);backdrop-filter:blur(14px);
+  border-top:1px solid var(--line);
+  padding:6px 0 calc(6px + env(safe-area-inset-bottom));
+  display:flex;justify-content:space-around}
+.nav-item{flex:1;text-align:center;padding:6px 2px;cursor:pointer;
+  color:var(--dim);font-size:10px;transition:.15s;position:relative}
+.nav-item .ico{font-size:17px;display:block;margin-bottom:1px;line-height:1.2}
+.nav-item.on{color:var(--purple)}
+.nav-item.on:before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);
+  width:22px;height:2px;border-radius:0 0 2px 2px;background:var(--purple)}
+
+.pane{display:none}
+.pane.on{display:block}
+footer{text-align:center;font-size:10px;color:#3f4d63;margin-top:14px;line-height:1.8}
+.spin{display:inline-block;width:10px;height:10px;border:2px solid var(--dim);
+  border-top-color:var(--purple);border-radius:50%;
+  animation:sp .7s linear infinite;vertical-align:-1px;margin-right:4px}
+@keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -153,128 +202,295 @@ footer{text-align:center;font-size:11px;color:#3f4d63;margin-top:20px;line-heigh
       <h1>MiTuner</h1>
       <div class="sub" id="model">系统调优 · MTK</div>
     </div>
+    <div class="hdr-badge" id="verBadge">v2.0</div>
   </header>
 
   <div class="tip err-tip" id="errTip"></div>
   <div class="tip ok-tip" id="okTip"></div>
 
-  <div class="hero">
-    <div class="hero-row">
-      <div>
-        <div class="bigmode" id="modeName">检测中</div>
-        <div class="hero-lbl" id="modeSub">当前调度档位</div>
-      </div>
-      <div class="badge b-normal" id="modeBadge">–</div>
-    </div>
-  </div>
+  <!-- ============ 首页 ============ -->
+  <div class="pane on" id="pane-home">
 
-  <div class="card">
-    <div class="card-title"><span>三态调度</span><span style="font-size:10px;letter-spacing:0">自动切换</span></div>
-    <div class="modes">
-      <div class="mode-box mode-game" id="mGame"><b>游戏</b>放开性能<br>最低延迟</div>
-      <div class="mode-box mode-normal on" id="mNormal"><b>日常</b>平衡策略<br>流畅省电</div>
-      <div class="mode-box mode-idle" id="mIdle"><b>息屏</b>降低下限<br>极致省电</div>
-    </div>
-    <div class="note">
-      检测方式：<b>前台是游戏 → 立即 GAME</b>；
-      切到后台后<b>保持 30 秒</b>再退出（回消息不打断）；
-      屏幕熄灭直接 IDLE。
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-title"><span>运行状态</span></div>
-    <div class="kv"><span class="k">前台应用</span><span class="v c" id="fg">–</span></div>
-    <div class="kv"><span class="k">屏幕</span><span class="v" id="screen">–</span></div>
-    <div class="kv"><span class="k">GPU 负载</span><span class="v" id="gpu">–</span></div>
-    <div class="kv"><span class="k">守护进程</span><span class="v" id="daemon">–</span></div>
-    <div class="kv"><span class="k">热更新监听</span><span class="v" id="hotupd">–</span></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">
-      <span>游戏白名单</span>
-      <span style="font-size:10px;letter-spacing:0;color:var(--lime)" id="gameCount">–</span>
-    </div>
-
-    <div class="tabs">
-      <div class="tab on" data-tab="list">名单</div>
-      <div class="tab" data-tab="installed">添加游戏</div>
-      <div class="tab" data-tab="manual">手动</div>
-    </div>
-
-    <div id="pane-list">
-      <div class="inp-row">
-        <input class="inp" id="filterList" placeholder="搜索游戏名或包名…">
-      </div>
-      <div class="games-list" id="gamesList">
-        <div style="padding:14px;color:var(--dim);font-size:12px;text-align:center">
-          <span class="spin"></span>读取中…
+    <div class="hero">
+      <div class="hero-row">
+        <div>
+          <div class="bigmode" id="modeName">检测中</div>
+          <div class="hero-lbl" id="modeSub">当前调度档位</div>
         </div>
-      </div>
-      <div class="picker-bar">
-        <button class="ok sm" id="btnRestore">↺ 恢复内置名单</button>
+        <div class="badge b-normal" id="modeBadge">–</div>
       </div>
     </div>
 
-    <div id="pane-installed" style="display:none">
-      <div class="note" style="margin:0 0 10px">
-        <b>先打开游戏，再回来这里</b> —— 正在运行的游戏会自动排到最上面。
-      </div>
-      <div class="inp-row">
-        <input class="inp" id="filterInstalled" placeholder="搜索包名…">
-        <button class="sm" id="btnScan" style="flex:0 0 auto">扫描</button>
-      </div>
-      <div class="picker" id="installedList">
-        <div style="padding:14px;color:var(--dim);font-size:12px;text-align:center">
-          点「扫描」查找可添加的应用
-        </div>
-      </div>
-      <div class="picker-bar">
-        <button class="sm" id="btnSelNone">清空</button>
-        <button class="primary sm" id="btnAddSel">添加选中</button>
+    <div class="card">
+      <div class="card-title"><span>三态调度</span><span class="val" id="exitSec">30s 退出</span></div>
+      <div class="modes">
+        <div class="mode-box mg" id="mGame"><b>游戏</b>放开性能</div>
+        <div class="mode-box mn on" id="mNormal"><b>日常</b>平衡</div>
+        <div class="mode-box mi" id="mIdle"><b>息屏</b>省电</div>
       </div>
     </div>
 
-    <div id="pane-manual" style="display:none">
-      <div class="inp-row">
-        <input class="inp" id="inpPkg" placeholder="包名，如 com.example.game" autocapitalize="off" autocorrect="off">
+    <div class="card">
+      <div class="card-title"><span>运行状态</span></div>
+      <div class="kv"><span class="k">前台应用</span><span class="v c" id="fg">–</span></div>
+      <div class="kv"><span class="k">屏幕</span><span class="v" id="screen">–</span></div>
+      <div class="kv"><span class="k">温度 (SoC / 电池 / 充电IC)</span><span class="v" id="temps">–</span></div>
+      <div class="kv"><span class="k">GPU 负载 / 频率</span><span class="v" id="gpuInfo">–</span></div>
+      <div class="kv"><span class="k">守护 / 热更新</span><span class="v" id="daemons">–</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>快速操作</span></div>
+      <div class="btns">
+        <button id="btnNormal">切到日常</button>
+        <button id="btnGame">切到游戏</button>
+        <button id="btnReapply">重新应用优化</button>
+        <button id="btnRestart">重启守护</button>
       </div>
-      <div class="inp-row">
-        <input class="inp" id="inpName" placeholder="备注名（可选），如 我的游戏">
+    </div>
+
+  </div>
+
+  <!-- ============ 参数页 ============ -->
+  <div class="pane" id="pane-params">
+
+    <div class="card">
+      <div class="card-title"><span>内存与 IO</span><span class="val" id="memBadge">实时</span></div>
+      <div class="slider-row">
+        <div class="slider-lbl">swappiness<small>低=少换页(流畅)</small></div>
+        <input type="range" id="sSwappiness" min="0" max="200" step="5">
+        <div class="slider-val" id="vSwappiness">–</div>
       </div>
-      <div class="picker-bar">
-        <button class="primary" id="btnAddManual">添加</button>
+      <div class="slider-row">
+        <div class="slider-lbl">vfs_cache_pressure<small>低=保缓存(快)</small></div>
+        <input type="range" id="sVfs" min="20" max="200" step="10">
+        <div class="slider-val" id="vVfs">–</div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-lbl">dirty_ratio<small>脏页上限%</small></div>
+        <input type="range" id="sDirty" min="5" max="40" step="1">
+        <div class="slider-val" id="vDirty">–</div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-lbl">read_ahead_kb<small>IO预读</small></div>
+        <input type="range" id="sRa" min="64" max="2048" step="64">
+        <div class="slider-val" id="vRa">–</div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-lbl">rate_limit_us<small>调频间隔</small></div>
+        <input type="range" id="sRl" min="100" max="4000" step="100">
+        <div class="slider-val" id="vRl">–</div>
+      </div>
+      <div class="btnrow btns" style="margin-top:12px">
+        <button class="primary" id="btnApplyParams">应用参数</button>
+        <button id="btnResetParams">恢复原厂</button>
       </div>
       <div class="note">
-        包名怎么查：打开游戏后看上面「前台应用」那一行，就是它的包名。
+        当前显示的是系统实际值。拖动后点「应用参数」生效，<b>立即生效无需重启</b>。
       </div>
     </div>
 
-    <div class="note">
-      所有改动 <b>立即生效</b>，无需重启手机。
+    <div class="card">
+      <div class="card-title"><span>三态参数自定义</span></div>
+      <div class="btns g3" style="margin-bottom:11px">
+        <button class="sm on" data-prof="GAME">游戏</button>
+        <button class="sm" data-prof="NORMAL">日常</button>
+        <button class="sm" data-prof="IDLE">息屏</button>
+      </div>
+      <div id="profEditor">
+        <div class="kv"><span class="k">swappiness</span><span class="v p" id="peSwap">–</span></div>
+        <div class="kv"><span class="k">vfs_cache_pressure</span><span class="v p" id="peVfs">–</span></div>
+        <div class="kv"><span class="k">read_ahead_kb</span><span class="v p" id="peRa">–</span></div>
+        <div class="kv"><span class="k">rate_limit_us</span><span class="v p" id="peRl">–</span></div>
+      </div>
+      <div class="inp-row" style="margin-top:11px">
+        <input class="inp" id="inpProfVal" placeholder="输入各项值，格式 swappiness,vfs,ra,rl">
+      </div>
+      <div class="btns">
+        <button class="sm" id="btnSaveProf">保存该档</button>
+        <button class="sm" id="btnResetProf">恢复默认</button>
+      </div>
+      <div class="note">
+        例：<b>40,60,512,200</b> ＝ swappiness 40 / vfs 60 / 预读 512KB / 调频 200µs。
+        保存后该档位切换时就用这组值。
+      </div>
     </div>
+
   </div>
 
-  <div class="card">
-    <div class="card-title"><span>当前参数</span></div>
-    <div class="kv"><span class="k">swappiness</span><span class="v" id="swap">–</span></div>
-    <div class="kv"><span class="k">vfs_cache_pressure</span><span class="v" id="vfs">–</span></div>
-    <div class="kv"><span class="k">read_ahead_kb</span><span class="v" id="ra">–</span></div>
-    <div class="kv"><span class="k">schedutil.rate_limit</span><span class="v" id="rl">–</span></div>
+  <!-- ============ 游戏页 ============ -->
+  <div class="pane" id="pane-games">
+
+    <div class="card">
+      <div class="card-title"><span>游戏白名单</span><span class="val" id="gameCount">–</span></div>
+
+      <div class="btns g3" style="margin-bottom:11px">
+        <button class="sm on" data-gtab="list">名单</button>
+        <button class="sm" data-gtab="add">添加</button>
+        <button class="sm" data-gtab="manual">手动</button>
+      </div>
+
+      <div id="gpane-list">
+        <div class="inp-row">
+          <input class="inp" id="filterList" placeholder="搜索游戏名或包名…">
+        </div>
+        <div class="list" id="gamesList">
+          <div style="padding:12px;color:var(--dim);font-size:11.5px;text-align:center">
+            <span class="spin"></span>读取中…
+          </div>
+        </div>
+        <div class="btns" style="margin-top:10px">
+          <button class="ok sm full" id="btnRestore">↺ 恢复内置名单</button>
+        </div>
+      </div>
+
+      <div id="gpane-add" style="display:none">
+        <div class="note" style="margin:0 0 10px">
+          <b>先打开游戏，再回来扫描</b> —— 正在运行的会排到最上面。
+        </div>
+        <div class="inp-row">
+          <input class="inp" id="filterInstalled" placeholder="搜索包名…">
+          <button class="sm" id="btnScan" style="flex:0 0 auto">扫描</button>
+        </div>
+        <div class="picker" id="installedList">
+          <div style="padding:12px;color:var(--dim);font-size:11.5px;text-align:center">
+            点「扫描」查找可添加的应用
+          </div>
+        </div>
+        <div class="btns" style="margin-top:10px">
+          <button class="sm" id="btnSelNone">清空</button>
+          <button class="primary sm" id="btnAddSel">添加选中</button>
+        </div>
+      </div>
+
+      <div id="gpane-manual" style="display:none">
+        <div class="inp-row">
+          <input class="inp" id="inpPkg" placeholder="包名 com.example.game" autocapitalize="off" autocorrect="off">
+        </div>
+        <div class="inp-row">
+          <input class="inp" id="inpName" placeholder="备注名（可选）">
+        </div>
+        <div class="btns">
+          <button class="primary sm full" id="btnAddManual">添加</button>
+        </div>
+        <div class="note">
+          包名怎么查：打开游戏后看首页「前台应用」那一行。
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <div class="card">
-    <div class="card-title"><span>操作</span></div>
-    <div class="btns">
-      <button class="primary full" id="btnRefresh">↻ 刷新状态</button>
-      <button id="btnReapply">重新应用优化</button>
-      <button id="btnRestart">重启守护进程</button>
-      <button id="btnNormal">切到日常</button>
-      <button id="btnGame">切到游戏</button>
+  <!-- ============ 调优页 ============ -->
+  <div class="pane" id="pane-tune">
+
+    <div class="card">
+      <div class="card-title"><span>GPU 调优</span><span class="val" id="gpuGov">–</span></div>
+      <div class="kv"><span class="k">当前频率</span><span class="v c" id="gCur">–</span></div>
+      <div class="kv"><span class="k">频率范围</span><span class="v" id="gRange">–</span></div>
+      <div class="kv"><span class="k">Governor</span><span class="v b" id="gGov">–</span></div>
+      <div class="btns g3" style="margin-top:11px">
+        <button class="sm" data-gprof="game">游戏</button>
+        <button class="sm" data-gprof="normal">日常</button>
+        <button class="sm" data-gprof="save">省电</button>
+      </div>
+      <div class="btns" style="margin-top:8px">
+        <button class="sm" id="btnGpuReset">恢复原厂</button>
+        <button class="sm" id="btnGpuApply">自定义上限</button>
+      </div>
+      <div class="inp-row" style="margin-top:9px">
+        <input class="inp" id="inpGpuFreq" placeholder="如 460000000（Hz）" inputmode="numeric">
+      </div>
+      <div class="note warn">
+        <b>注意</b>：调 GPU 上限会直接影响功耗和发热。省电档限制到 460MHz，
+        游戏档放开到 825MHz。改完可随时「恢复原厂」。
+      </div>
     </div>
-    <div class="note" style="margin-top:13px">
-      <b>热更新</b>：装新版本后模块会自动检测同步，无需重启手机。
+
+    <div class="card">
+      <div class="card-title"><span>充电控制</span><span class="val" id="chgStatus">–</span></div>
+      <div class="kv"><span class="k">电量 / 状态</span><span class="v c" id="chgCap">–</span></div>
+      <div class="kv"><span class="k">电压 / 电流</span><span class="v" id="chgVI">–</span></div>
+      <div class="kv"><span class="k">功率</span><span class="v y" id="chgPower">–</span></div>
+      <div class="kv"><span class="k">电池 / 充电IC 温度</span><span class="v" id="chgTemp">–</span></div>
+      <div class="kv"><span class="k">充电上限设定</span><span class="v p" id="chgCapTarget">–</span></div>
+
+      <div class="slider-row" style="margin-top:9px">
+        <div class="slider-lbl">充电上限%<small>达到即停充</small></div>
+        <input type="range" id="sChgCap" min="50" max="100" step="5">
+        <div class="slider-val" id="vChgCap">–</div>
+      </div>
+      <div class="slider-row">
+        <div class="slider-lbl">限流 mA<small>减小发热</small></div>
+        <input type="range" id="sChgLimit" min="100" max="6000" step="100">
+        <div class="slider-val" id="vChgLimit">–</div>
+      </div>
+      <div class="btns g3" style="margin-top:11px">
+        <button class="sm" id="btnChgApply">应用</button>
+        <button class="sm danger" id="btnChgStop">停止充电</button>
+        <button class="sm ok" id="btnChgReset">恢复原厂</button>
+      </div>
+      <div class="note warn">
+        <b>安全提示</b>：停充后手机靠电池供电，会持续掉电。长期插电建议设 80% 上限。
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>散热器模式</span><span class="val" id="coolState">关闭</span></div>
+      <div class="kv"><span class="k">SoC 温度</span><span class="v" id="coolSoc">–</span></div>
+      <div class="kv"><span class="k">环境温度</span><span class="v" id="coolAmb">–</span></div>
+      <div class="kv"><span class="k">自动建议</span><span class="v" id="coolSuggest">–</span></div>
+      <div class="btns" style="margin-top:11px">
+        <button class="primary sm" id="btnCoolOn">开启散热器模式</button>
+        <button class="sm" id="btnCoolOff">关闭</button>
+      </div>
+      <div class="note">
+        开启后：GPU 放开 + 调度更激进 + 内存更宽松。适合插散热背夹时用。
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>后台限制</span><span class="val" id="bgState">–</span></div>
+      <div class="kv"><span class="k">background 权重</span><span class="v" id="bgShares">–</span></div>
+      <div class="kv"><span class="k">前台 / top-app 权重</span><span class="v" id="fgShares">–</span></div>
+      <div class="kv"><span class="k">后台进程数</span><span class="v" id="bgProcs">–</span></div>
+      <div class="btns" style="margin-top:11px">
+        <button class="primary sm" id="btnBgOn">启用限制</button>
+        <button class="sm" id="btnBgOff">关闭</button>
+      </div>
+      <div class="note">
+        原理：调 cgroup <code>cpu.shares</code> 相对权重（不杀进程）。
+        启用后后台抢 CPU 能力降到 1/8，前台提升。副作用极小。
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ 日志页 ============ -->
+  <div class="pane" id="pane-logs">
+    <div class="card">
+      <div class="card-title"><span>运行日志</span><span class="val" id="logLines">–</span></div>
+      <div class="btns g3" style="margin-bottom:10px">
+        <button class="sm on" data-log="main">主日志</button>
+        <button class="sm" data-log="debug">判定日志</button>
+        <button class="sm" data-log="clear">清空</button>
+      </div>
+      <div class="logbox" id="logBox"><span class="spin"></span>读取中…</div>
+      <div class="btns" style="margin-top:10px">
+        <button class="sm" id="btnLogRefresh">↻ 刷新</button>
+        <button class="sm" id="btnLogAuto">自动刷新: 关</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>模块信息</span></div>
+      <div class="kv"><span class="k">版本</span><span class="v p" id="infoVer">–</span></div>
+      <div class="kv"><span class="k">游戏数</span><span class="v" id="infoGames">–</span></div>
+      <div class="kv"><span class="k">配置目录</span><span class="v" style="font-size:10px">/data/adb/mituner</span></div>
+      <div class="kv"><span class="k">模块目录</span><span class="v" style="font-size:10px">/data/adb/modules/mituner</span></div>
+      <div class="note">
+        所有功能都<b>立即生效</b>，无需重启手机。配置文件改完 3 秒内自动重载。
+      </div>
     </div>
   </div>
 
@@ -284,16 +500,23 @@ footer{text-align:center;font-size:11px;color:#3f4d63;margin-top:20px;line-heigh
   </footer>
 </div>
 
+<nav>
+  <div class="nav-item on" data-pane="home"><span class="ico">◉</span>状态</div>
+  <div class="nav-item" data-pane="params"><span class="ico">⚙</span>参数</div>
+  <div class="nav-item" data-pane="games"><span class="ico">🎮</span>游戏</div>
+  <div class="nav-item" data-pane="tune"><span class="ico">⚡</span>调优</div>
+  <div class="nav-item" data-pane="logs"><span class="ico">📋</span>日志</div>
+</nav>
+
 <script>
-/* ===== KSU / APatch 桥（回调式） ===== */
+/* ===== KSU/APatch 桥 ===== */
 var cbSeq = 0;
 function detectBridge(){
-  var cands = [function(){return window.ksu;}, function(){return window.KernelSU;},
-               function(){return window.apatch;}, function(){return window.magisk;},
-               function(){return window.mm;}];
-  for (var i=0;i<cands.length;i++){
-    var o = null;
-    try { o = cands[i](); } catch(e){ o = null; }
+  var c = [function(){return window.ksu;}, function(){return window.KernelSU;},
+           function(){return window.apatch;}, function(){return window.magisk;},
+           function(){return window.mm;}];
+  for (var i=0;i<c.length;i++){
+    var o=null; try{o=c[i]();}catch(e){o=null;}
     if (o && typeof o.exec === 'function') return o;
   }
   return null;
@@ -301,415 +524,602 @@ function detectBridge(){
 function execCmd(cmd, timeoutMs){
   return new Promise(function(resolve){
     var b = detectBridge();
-    if (!b){ resolve({ errno:127, stdout:'', stderr:'未检测到 Root 桥' }); return; }
-    var name = 'mt_cb_' + Date.now() + '_' + (cbSeq++);
-    var done = false;
-    function finish(r){
-      if (done) return;
-      done = true;
-      try { delete window[name]; } catch(e){ window[name] = undefined; }
+    if (!b){ resolve({errno:127,stdout:'',stderr:'未检测到 Root 桥'}); return; }
+    var name='mt_'+Date.now()+'_'+(cbSeq++);
+    var done=false;
+    function fin(r){
+      if(done)return; done=true;
+      try{delete window[name];}catch(e){window[name]=undefined;}
       resolve(r);
     }
-    window[name] = function(errno, stdout, stderr){
-      finish({ errno: typeof errno === 'number' ? errno : 0,
-               stdout: stdout == null ? '' : String(stdout),
-               stderr: stderr == null ? '' : String(stderr) });
+    window[name]=function(errno,stdout,stderr){
+      fin({errno:typeof errno==='number'?errno:0,
+           stdout:stdout==null?'':String(stdout),
+           stderr:stderr==null?'':String(stderr)});
     };
     try{ b.exec(cmd, JSON.stringify({}), name); }
     catch(err){
       try{
-        var r = b.exec(cmd, {});
-        if (r && typeof r.then === 'function'){
-          r.then(function(o){ finish({errno:0, stdout:String(o||''), stderr:''}); })
-           .catch(function(e2){ finish({errno:1, stdout:'', stderr:String(e2)}); });
+        var r=b.exec(cmd,{});
+        if(r&&typeof r.then==='function'){
+          r.then(function(o){fin({errno:0,stdout:String(o||''),stderr:''});})
+           .catch(function(e2){fin({errno:1,stdout:'',stderr:String(e2)});});
           return;
         }
-      }catch(e2){ finish({errno:1, stdout:'', stderr:String(e2)}); return; }
-      finish({ errno:1, stdout:'', stderr:String(err) });
+      }catch(e2){ fin({errno:1,stdout:'',stderr:String(e2)}); return; }
+      fin({errno:1,stdout:'',stderr:String(err)});
     }
-    setTimeout(function(){ finish({ errno:124, stdout:'', stderr:'超时' }); }, timeoutMs || 20000);
+    setTimeout(function(){fin({errno:124,stdout:'',stderr:'超时'});}, timeoutMs||20000);
   });
 }
 
-var $ = function(id){ return document.getElementById(id); };
-function esc(s){
-  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-function parseKV(out){
-  var o = {};
+var $ = function(id){return document.getElementById(id);};
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function kv(out){
+  var o={};
   String(out||'').split('\n').forEach(function(l){
-    var i = l.indexOf('=');
-    if (i>0) o[l.slice(0,i).trim()] = l.slice(i+1).trim();
+    var i=l.indexOf('=');
+    if(i>0)o[l.slice(0,i).trim()]=l.slice(i+1).trim();
   });
   return o;
 }
-function tip(el, msg, ms){
-  el.textContent = msg;
-  el.style.display = 'block';
+function tip(el,msg,ms){
+  el.textContent=msg; el.style.display='block';
   clearTimeout(el._t);
-  if (ms) el._t = setTimeout(function(){ el.style.display='none'; }, ms);
+  if(ms)el._t=setTimeout(function(){el.style.display='none';},ms);
 }
 
-var GC = '/data/adb/modules/mituner/gamectl.sh';
+var M = '/data/adb/modules/mituner';
+var GC = M + '/gamectl.sh';
+var GP = M + '/gpuctl.sh';
+var CH = M + '/chargectl.sh';
+var BG = M + '/bgctl.sh';
+var CO = M + '/coolctl.sh';
 
-var STATUS_CMD = [
+/* ===== 状态采集（一次拿全部）===== */
+var STATUS = [
   'BK=/data/adb/mituner',
-  'FG=$(timeout 4 dumpsys window 2>/dev/null | grep mCurrentFocus | head -1 | sed "s/.*u0 \\([^\\/]*\\).*/\\1/")',
-  'SCR=$(dumpsys power 2>/dev/null | grep -oE "mWakefulness=(Awake|Asleep|Dozing)" | head -1 | sed "s/.*=//")',
-  'GPU=$(cat /sys/module/ged/parameters/gpu_loading 2>/dev/null | head -1)',
-  'ST=$(cat $BK/state 2>/dev/null)',
-  'SR=$(cat $BK/state_raw 2>/dev/null)',
-  'SPID=$(cat /data/local/tmp/mituner.pid 2>/dev/null)',
-  'HPID=$(cat /data/local/tmp/mituner-hotupdate.pid 2>/dev/null)',
-  '[ -n "$SPID" ] && [ -d "/proc/$SPID" ] && D=running || D=stopped',
-  '[ -n "$HPID" ] && [ -d "/proc/$HPID" ] && H=running || H=stopped',
+  'FG=$(timeout 4 dumpsys window 2>/dev/null|grep mCurrentFocus|head -1|sed -n "s/.*u[0-9][0-9]* \\([^ \\/]*\\)\\/.*/\\1/p")',
+  'SCR=$(dumpsys power 2>/dev/null|grep -oE "mWakefulness=(Awake|Asleep|Dozing)"|head -1|sed "s/.*=//")',
+  'ST=$(cat $BK/state 2>/dev/null); RAW=$(cat $BK/state_raw 2>/dev/null)',
+  'SP=$(cat /data/local/tmp/mituner.pid 2>/dev/null)',
+  'HP=$(cat /data/local/tmp/mituner-hotupdate.pid 2>/dev/null)',
+  '[ -n "$SP" ]&&[ -d "/proc/$SP" ]&&D=running||D=stopped',
+  '[ -n "$HP" ]&&[ -d "/proc/$HP" ]&&H=running||H=stopped',
   'SW=$(cat /proc/sys/vm/swappiness 2>/dev/null)',
   'VF=$(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null)',
+  'DR=$(cat /proc/sys/vm/dirty_ratio 2>/dev/null)',
   'RA=$(cat /sys/block/dm-47/queue/read_ahead_kb 2>/dev/null)',
   'RL=$(cat /sys/devices/system/cpu/cpufreq/policy7/schedutil/rate_limit_us 2>/dev/null)',
   'MD=$(getprop ro.product.odm.marketname)',
+  'VER=$(grep "^version=" ' + M + '/module.prop 2>/dev/null|cut -d= -f2)',
   'CNT=$(sh ' + GC + ' count 2>/dev/null)',
-  'echo "FG=$FG"; echo "SCR=$SCR"; echo "GPU=$GPU"; echo "STATE=$ST"; echo "RAW=$SR"',
-  'echo "DAEMON=$D"; echo "HOT=$H"; echo "SWAP=$SW"; echo "VFS=$VF"',
-  'echo "RA=$RA"; echo "RL=$RL"; echo "MODEL=$MD"; echo "GC=$CNT"'
+  'GPUL=$(cat /sys/module/ged/parameters/gpu_loading 2>/dev/null)',
+  'GFQ=$(cat /sys/kernel/ged/hal/current_freqency 2>/dev/null|awk "{print \\$2}")',
+  'TB=$(for z in /sys/class/thermal/thermal_zone*/;do [ "$(cat $z/type 2>/dev/null)" = "soc_max" ]&&cat $z/temp 2>/dev/null&&break;done)',
+  'TC=$(for z in /sys/class/thermal/thermal_zone*/;do [ "$(cat $z/type 2>/dev/null)" = "charger1_therm" ]&&cat $z/temp 2>/dev/null&&break;done)',
+  'BAT=$(cat /sys/class/power_supply/battery/temp 2>/dev/null)',
+  'echo "FG=$FG";echo "SCR=$SCR";echo "STATE=$ST";echo "RAW=$RAW"',
+  'echo "DAEMON=$D";echo "HOT=$H";echo "SW=$SW";echo "VF=$VF"',
+  'echo "DIRTY=$DR";echo "RA=$RA";echo "RL=$RL";echo "MODEL=$MD"',
+  'echo "VER=$VER";echo "GC=$CNT";echo "GPUL=$GPUL";echo "GFQ=$GFQ"',
+  'echo "TB=$TB";echo "TC=$TC";echo "BATT=$BAT"'
 ].join('\n');
 
-var ST = { list: [], filter: '', cand: [], sel: {}, curFg: '' };
+var MODE_META={
+  GAME:{n:'游戏模式',b:'放开性能',c:'b-game',x:'mGame'},
+  NORMAL:{n:'日常模式',b:'平衡流畅',c:'b-normal',x:'mNormal'},
+  IDLE:{n:'息屏模式',b:'省电优先',c:'b-idle',x:'mIdle'}
+};
+
+async function refreshStatus(){
+  var r = await execCmd(STATUS, 20000);
+  if (r.errno!==0 && !r.stdout){ tip($('errTip'),'读取失败:'+(r.stderr||r.errno),0); return; }
+  var d = kv(r.stdout);
+  $('errTip').style.display='none';
+
+  var st=(d.STATE||'NORMAL').trim(), raw=(d.RAW||st).trim();
+  var m=MODE_META[st]||MODE_META.NORMAL;
+  $('modeName').textContent=m.n;
+  $('modeBadge').className='badge '+m.c;
+  $('modeBadge').textContent=m.b;
+  $('modeSub').textContent = (raw==='GAME_HOLD')?'当前调度档位 · 切后台保持中':'当前调度档位';
+  ['mGame','mNormal','mIdle'].forEach(function(i){$(i).classList.remove('on');});
+  $(m.x).classList.add('on');
+
+  $('fg').textContent=d.FG||'(无)';
+  var sm={Awake:'亮屏',Asleep:'熄灭',Dozing:'AOD'};
+  $('screen').textContent=sm[d.SCR]||(d.SCR||'–');
+  $('screen').className='v '+(d.SCR==='Awake'?'g':'y');
+
+  var tb=Math.round((+d.TB||0)/1000), tc=Math.round((+d.TC||0)/1000), bt=Math.round((+d.BAT||0)/10);
+  $('temps').textContent=tb+'° / '+bt+'° / '+tc+'°';
+  var maxT=Math.max(tb,bt,tc);
+  $('temps').className='v '+(maxT>=50?'r':(maxT>=44?'y':'g'));
+
+  var gl=d.GPUL||'0', gfq=Math.round((+d.GFQ||0)/1000);
+  $('gpuInfo').textContent=gl+'% / '+gfq+'MHz';
+
+  var dn=(d.DAEMON||'').trim()==='running', hp=(d.HOT||'').trim()==='running';
+  $('daemons').textContent=(dn?'✓':'✗')+' / '+(hp?'✓':'✗');
+  $('daemons').className='v '+((dn&&hp)?'g':'r');
+
+  // 参数页
+  $('vSwappiness').textContent=d.SW||'–';
+  $('vVfs').textContent=d.VF||'–';
+  $('vDirty').textContent=d.DIRTY||'–';
+  $('vRa').textContent=d.RA||'–';
+  $('vRl').textContent=d.RL||'–';
+  if(!window._userDragging){
+    $('sSwappiness').value=d.SW||60;
+    $('sVfs').value=d.VF||80;
+    $('sDirty').value=d.DIRTY||15;
+    $('sRa').value=d.RA||256;
+    $('sRl').value=d.RL||500;
+  }
+
+  if(d.MODEL){
+    $('model').textContent=d.MODEL+' · 系统调优';
+    $('footInfo').textContent=d.MODEL+' / MTK';
+  }
+  if(d.VER) $('verBadge').textContent=d.VER;
+  if(d.VER) $('infoVer').textContent=d.VER;
+  if(d.GC){ $('gameCount').textContent=d.GC+' 款'; $('infoGames').textContent=d.GC+' 款'; }
+}
+
+/* ===== 导航 ===== */
+document.querySelectorAll('.nav-item').forEach(function(n){
+  n.onclick=function(){
+    document.querySelectorAll('.nav-item').forEach(function(x){x.classList.remove('on');});
+    n.classList.add('on');
+    document.querySelectorAll('.pane').forEach(function(p){p.classList.remove('on');});
+    var p=$('pane-'+n.getAttribute('data-pane'));
+    if(p)p.classList.add('on');
+    var k=n.getAttribute('data-pane');
+    if(k==='games') loadList();
+    if(k==='tune') loadTune();
+    if(k==='logs') loadLog();
+    refreshStatus();
+  };
+});
+
+/* ===== 游戏 ===== */
+var GS={list:[],filter:'',cand:[],sel:{},curFg:''};
 
 function renderList(){
-  var box = $('gamesList');
-  var kw = ST.filter.toLowerCase().trim();
-  var rows = ST.list;
-  if (kw){
-    rows = rows.filter(function(g){
-      return g.pkg.toLowerCase().indexOf(kw) >= 0 ||
-             (g.name||'').toLowerCase().indexOf(kw) >= 0;
-    });
-  }
-  if (!rows.length){
-    box.innerHTML = '<div style="padding:14px;color:var(--dim);font-size:12px;text-align:center">'
-      + (ST.list.length ? '没有匹配项' : '名单为空') + '</div>';
+  var box=$('gamesList'), kw=GS.filter.toLowerCase().trim();
+  var rows=GS.list;
+  if(kw) rows=rows.filter(function(g){
+    return g.pkg.toLowerCase().indexOf(kw)>=0||(g.name||'').toLowerCase().indexOf(kw)>=0;});
+  if(!rows.length){
+    box.innerHTML='<div style="padding:12px;color:var(--dim);font-size:11.5px;text-align:center">'
+      +(GS.list.length?'没有匹配项':'名单为空')+'</div>';
     return;
   }
-  var html = '';
+  var h='';
   rows.forEach(function(g){
-    var hit = (g.pkg === ST.curFg);
-    html += '<div class="gitem' + (hit?' hit':'') + '">'
-      + '<span class="gname">' + esc(g.name || g.pkg) + '</span>'
-      + '<span class="gpkg">' + esc(g.name ? g.pkg : '') + '</span>'
-      + '<button class="gdel" data-pkg="' + esc(g.pkg) + '">×</button></div>';
+    h+='<div class="gitem'+(g.pkg===GS.curFg?' hit':'')+'">'
+      +'<span class="gname">'+esc(g.name||g.pkg)+'</span>'
+      +'<span class="gpkg">'+esc(g.name?g.pkg:'')+'</span>'
+      +'<button class="gdel" data-p="'+esc(g.pkg)+'">×</button></div>';
   });
-  box.innerHTML = html;
-  var btns = box.querySelectorAll('.gdel');
-  for (var i=0;i<btns.length;i++){
-    btns[i].onclick = (function(p){
-      return function(e){ e.stopPropagation(); delGame(p); };
-    })(btns[i].getAttribute('data-pkg'));
-  }
+  box.innerHTML=h;
+  box.querySelectorAll('.gdel').forEach(function(b){
+    b.onclick=function(e){e.stopPropagation();delGame(b.getAttribute('data-p'));};
+  });
 }
 
 async function loadList(){
-  var r = await execCmd('sh ' + GC + ' list 2>/dev/null', 20000);
-  ST.list = String(r.stdout||'').split('\n')
-    .filter(function(l){ return l.indexOf('\t') >= 0; })
-    .map(function(l){
-      var i = l.indexOf('\t');
-      return { name: l.slice(0,i).trim(), pkg: l.slice(i+1).trim() };
-    })
-    .filter(function(g){ return g.pkg; });
+  var r=await execCmd('sh '+GC+' list 2>/dev/null',20000);
+  GS.list=String(r.stdout||'').split('\n').filter(function(l){return l.indexOf('\t')>=0;})
+    .map(function(l){var i=l.indexOf('\t');return{name:l.slice(0,i).trim(),pkg:l.slice(i+1).trim()};})
+    .filter(function(g){return g.pkg;});
   renderList();
-  $('gameCount').textContent = ST.list.length + ' 款';
+  $('gameCount').textContent=GS.list.length+' 款';
 }
 
-/* ★ 候选列表：按优先级分组显示 */
-var GROUP_NAME = {
-  0: '★ 游戏（关键词命中 + 正在运行）',
-  1: '游戏（关键词命中）',
-  2: '正在运行的应用',
-  3: '其他应用'
-};
-
-function renderCandidates(){
-  var box = $('installedList');
-  if (!ST.cand.length){
-    box.innerHTML = '<div style="padding:14px;color:var(--dim);font-size:12px;text-align:center">'
-      + '点「扫描」查找可添加的应用<br><br>'
-      + '<span style="font-size:11px">提示：先打开游戏再扫描，它会排到最上面</span></div>';
+var GROUP={0:'★ 游戏（关键词+运行中）',1:'游戏（关键词）',2:'正在运行',3:'其他'};
+function renderCand(){
+  var box=$('installedList');
+  if(!GS.cand.length){
+    box.innerHTML='<div style="padding:12px;color:var(--dim);font-size:11.5px;text-align:center">'
+      +'点「扫描」查找<br><span style="font-size:10px">先开游戏再扫描，会排最前</span></div>';
     return;
   }
-  var kw = ($('filterInstalled').value||'').toLowerCase().trim();
-  var rows = ST.cand;
-  if (kw) rows = rows.filter(function(c){ return c.pkg.toLowerCase().indexOf(kw) >= 0; });
-
-  if (!rows.length){
-    box.innerHTML = '<div style="padding:14px;color:var(--dim);font-size:12px;text-align:center">没有匹配项</div>';
+  var kw=($('filterInstalled').value||'').toLowerCase().trim();
+  var rows=GS.cand;
+  if(kw) rows=rows.filter(function(c){return c.pkg.toLowerCase().indexOf(kw)>=0;});
+  if(!rows.length){
+    box.innerHTML='<div style="padding:12px;color:var(--dim);font-size:11.5px;text-align:center">没有匹配项</div>';
     return;
   }
-
-  var html = '';
-  var lastPr = -1;
+  var h='',last=-1;
   rows.forEach(function(c){
-    if (c.pr !== lastPr){
-      html += '<div class="group-hd">' + esc(GROUP_NAME[c.pr] || '其他') + '</div>';
-      lastPr = c.pr;
-    }
-    var s = !!ST.sel[c.pkg];
-    var badges = '';
-    if (c.pr <= 1) badges += '<span class="pkw">游戏?</span>';
-    if (c.running) badges += '<span class="prun">运行中</span>';
-    html += '<div class="pitem' + (s?' sel':'') + '" data-pkg="' + esc(c.pkg) + '">'
-      + '<div class="pchk">' + (s?'✓':'') + '</div>'
-      + '<div class="pinfo"><div class="ppkg">' + esc(c.pkg) + '</div></div>'
-      + badges + '</div>';
+    if(c.pr!==last){h+='<div class="group-hd">'+esc(GROUP[c.pr]||'其他')+'</div>';last=c.pr;}
+    var s=!!GS.sel[c.pkg];
+    var tg='';
+    if(c.pr<=1) tg+='<span class="tagkw">游戏?</span>';
+    if(c.run) tg+='<span class="tagrun">运行中</span>';
+    h+='<div class="pitem'+(s?' sel':'')+'" data-p="'+esc(c.pkg)+'">'
+      +'<div class="pchk">'+(s?'✓':'')+'</div>'
+      +'<div class="pinfo"><div class="ppkg">'+esc(c.pkg)+'</div></div>'+tg+'</div>';
   });
-  box.innerHTML = html;
-
-  var items = box.querySelectorAll('.pitem');
-  for (var i=0;i<items.length;i++){
-    items[i].onclick = (function(el){
-      return function(){
-        var p = el.getAttribute('data-pkg');
-        if (ST.sel[p]) delete ST.sel[p]; else ST.sel[p] = 1;
-        renderCandidates();
-      };
-    })(items[i]);
-  }
+  box.innerHTML=h;
+  box.querySelectorAll('.pitem').forEach(function(el){
+    el.onclick=function(){
+      var p=el.getAttribute('data-p');
+      if(GS.sel[p])delete GS.sel[p];else GS.sel[p]=1;
+      renderCand();
+    };
+  });
 }
 
-/* 写操作 */
-function safePkg(p){
-  p = String(p||'').trim();
-  return /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$/.test(p) ? p : null;
-}
-function safeName(n){
-  return String(n||'').replace(/[^\w\u4e00-\u9fa5\-. ]/g,'').trim().slice(0,40);
-}
+function safePkg(p){p=String(p||'').trim();
+  return /^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$/.test(p)?p:null;}
+function safeName(n){return String(n||'').replace(/[^\w\u4e00-\u9fa5\-. ]/g,'').trim().slice(0,40);}
 
 async function addGames(items){
-  var n = 0, skip = 0;
-  for (var i=0;i<items.length;i++){
-    var p = safePkg(items[i].pkg);
-    if (!p){ skip++; continue; }
-    var nm = safeName(items[i].name);
-    var cmd = 'sh ' + GC + ' add ' + JSON.stringify(p) + (nm ? (' ' + JSON.stringify(nm)) : '');
-    var r = await execCmd(cmd, 15000);
-    var out = String(r.stdout||'');
-    if (out.indexOf('OK') >= 0 || out.indexOf('EXISTS') >= 0) n++;
-    else skip++;
+  var n=0,skip=0;
+  for(var i=0;i<items.length;i++){
+    var p=safePkg(items[i].pkg); if(!p){skip++;continue;}
+    var nm=safeName(items[i].name);
+    var r=await execCmd('sh '+GC+' add '+JSON.stringify(p)+(nm?' '+JSON.stringify(nm):''),15000);
+    var o=String(r.stdout||'');
+    if(o.indexOf('OK')>=0||o.indexOf('EXISTS')>=0)n++;else skip++;
   }
-  if (n > 0){
-    var c = await execCmd('sh ' + GC + ' count 2>/dev/null', 10000);
-    tip($('okTip'), '已添加 ' + n + ' 个' + (skip?('，跳过 '+skip+' 个'):'')
-      + ' · 当前共 ' + String(c.stdout||'').trim() + ' 款 · 已生效', 3500);
-    await loadList();
-    return true;
+  if(n>0){
+    var c=await execCmd('sh '+GC+' count 2>/dev/null',10000);
+    tip($('okTip'),'已添加 '+n+' 个'+(skip?'（跳过'+skip+'）':'')
+      +' · 共 '+String(c.stdout||'').trim()+' 款 · 已生效',3500);
+    await loadList(); return true;
   }
-  tip($('errTip'), '添加失败（包名格式不对？）', 4000);
+  tip($('errTip'),'添加失败（包名格式不对？）',4000);
   return false;
 }
 
 async function delGame(pkg){
-  var p = safePkg(pkg);
-  if (!p){ tip($('errTip'), '包名不合法', 3000); return; }
-  if (!confirm('从白名单删除？\n\n' + p)) return;
-  var r = await execCmd('sh ' + GC + ' del ' + JSON.stringify(p), 15000);
+  var p=safePkg(pkg); if(!p)return;
+  if(!confirm('从白名单删除？\n\n'+p))return;
+  var r=await execCmd('sh '+GC+' del '+JSON.stringify(p),15000);
+  var o=String(r.stdout||'');
+  if(o.indexOf('OK')>=0){
+    var c=await execCmd('sh '+GC+' count 2>/dev/null',10000);
+    tip($('okTip'),'已删除 · 共 '+String(c.stdout||'').trim()+' 款',3000);
+    await loadList();
+  }else if(o.indexOf('NOTFOUND')>=0){tip($('errTip'),'找不到该包名',4000);}
+  else tip($('errTip'),'删除失败',4000);
+}
+
+async function scanCand(){
+  var b=$('btnScan'); b.disabled=true; b.textContent='扫描中…';
+  var r=await execCmd('sh '+GC+' candidates 2>/dev/null',30000);
+  GS.cand=String(r.stdout||'').split('\n').filter(function(l){return l.indexOf('\t')>=0;})
+    .map(function(l){var p=l.split('\t');return{pr:parseInt(p[0],10)||3,pkg:p[1]};})
+    .filter(function(c){return c.pkg;});
+  // 标记运行中
+  var rr=await execCmd('sh '+GC+' running 2>/dev/null',15000);
+  var runSet={};
+  String(rr.stdout||'').split('\n').forEach(function(x){x=x.trim();if(x)runSet[x]=1;});
+  GS.cand.forEach(function(c){ c.run = (c.pr===0||c.pr===2)||!!runSet[c.pkg]; });
+  GS.sel={};
+  renderCand();
+  b.disabled=false; b.textContent='扫描';
+  if(GS.cand.length){
+    var n0=GS.cand.filter(function(c){return c.pr<=1;}).length;
+    tip($('okTip'),'找到 '+GS.cand.length+' 个 · '+n0+' 个疑似游戏',4000);
+  }else tip($('errTip'),'没有可添加的（都已在名单里？）',5000);
+}
+
+/* ===== 调优页 ===== */
+async function loadTune(){
+  // GPU
+  var g=await execCmd('sh '+GP+' get 2>/dev/null',20000);
+  var gd=kv(g.stdout);
+  if(gd.NODE){
+    $('gCur').textContent=Math.round((+gd.REAL_KHZ||0)/1000)+' MHz';
+    $('gRange').textContent=Math.round((+gd.MIN||0)/1e6)+' ~ '+Math.round((+gd.MAX||0)/1e6)+' MHz';
+    $('gGov').textContent=gd.GOV||'–';
+    $('gpuGov').textContent='负载 '+(gd.LOAD||'0')+'%';
+  }
+  // 充电
+  var c=await execCmd('sh '+CH+' get 2>/dev/null',20000);
+  var cd=kv(c.stdout);
+  if(cd.CAPACITY){
+    $('chgCap').textContent=cd.CAPACITY+'% · '+(cd.STATUS||'–');
+    $('chgVI').textContent=(Math.round((+cd.VOLTAGE||0)/1000)/1000).toFixed(3)+'V / '
+      +Math.round((+cd.CURRENT||0)/1000)+'mA';
+    $('chgPower').textContent=(+cd.POWER_MW||0)+' mW';
+    $('chgTemp').textContent=Math.round((+cd.TEMP||0)/10)+'° / '
+      +Math.round((+cd.IC_TEMP||0)/1000)+'°';
+    $('chgCapTarget').textContent=(cd.CAP_TARGET&&cd.CAP_TARGET!=='0')?cd.CAP_TARGET+'%':'未设';
+    $('chgStatus').textContent=cd.CHARGING==='1'?'充电中':'未充电';
+    var ct=+cd.CAP_TARGET||100;
+    $('sChgCap').value=ct>0?ct:100;
+    $('vChgCap').textContent=(ct>0?ct:100)+'%';
+    var lm=Math.round((+cd.CC||0)/1000)||2000;
+    $('sChgLimit').value=Math.min(6000,Math.max(100,lm));
+    $('vChgLimit').textContent=Math.round((+cd.CC||0)/1000)+'mA';
+  }
+  // 散热器
+  var co=await execCmd('sh '+CO+' status 2>&1',20000);
+  var cod=kv(co.stdout);
+  $('coolState').textContent=cod.ON==='1'?'已开启':'关闭';
+  $('coolSoc').textContent=Math.round((+cod.T_SOC_MAX||0)/1000)+'°C';
+  $('coolAmb').textContent=Math.round((+cod.T_QUIET_THERM||0)/1000)+'°C';
+  var ca=await execCmd('sh '+CO+' auto 2>&1',20000);
+  var cad=kv(ca.stdout);
+  $('coolSuggest').textContent=cad.SUGGEST==='on'?'建议开启':(cad.SUGGEST==='off'?'建议关闭':'保持');
+  $('coolSuggest').className='v '+(cad.SUGGEST==='on'?'y':(cad.SUGGEST==='off'?'r':'g'));
+  // 后台限制
+  var b=await execCmd('sh '+BG+' status 2>&1',20000);
+  var bd=kv(b.stdout);
+  $('bgShares').textContent=bd.BG_SHARES||'–';
+  $('fgShares').textContent=(bd.FG_SHARES||'–')+' / '+(bd.TA_SHARES||'–');
+  $('bgProcs').textContent=(bd.BG_PROCS||'0')+' 个';
+  $('bgState').textContent=bd.LIMITED==='1'?'已启用':'未启用';
+  $('bgState').style.color=bd.LIMITED==='1'?'var(--lime)':'var(--dim)';
+}
+
+/* ===== 日志 ===== */
+var LOGTYPE='main', logTimer=null;
+async function loadLog(){
+  var f = LOGTYPE==='debug' ? '/data/local/tmp/mituner-debug.log' : '/data/local/tmp/mituner.log';
+  var r = await execCmd('tail -80 '+f+' 2>/dev/null', 15000);
   var out = String(r.stdout||'');
-  if (out.indexOf('OK') >= 0){
-    var c = await execCmd('sh ' + GC + ' count 2>/dev/null', 10000);
-    tip($('okTip'), '已删除 ' + p + ' · 当前共 ' + String(c.stdout||'').trim() + ' 款', 3500);
-    await loadList();
-  } else if (out.indexOf('NOTFOUND') >= 0){
-    tip($('errTip'), '文件里找不到该包名', 4000);
-  } else {
-    tip($('errTip'), '删除失败', 4000);
-  }
+  $('logBox').textContent = out || '(空)';
+  $('logLines').textContent = out.split('\n').filter(function(l){return l.trim();}).length + ' 行';
+  $('logBox').scrollTop = $('logBox').scrollHeight;
 }
 
-async function restoreBuiltin(){
-  if (!confirm('恢复内置的 109 款名单？\n\n⚠️ 你自定义添加的会丢失。')) return;
-  var r = await execCmd('sh ' + GC + ' restore 2>&1', 20000);
-  if (String(r.stdout||'').indexOf('OK') >= 0){
-    tip($('okTip'), '已恢复内置 109 款名单', 3500);
-    await loadList();
-  } else {
-    tip($('errTip'), '恢复失败', 4000);
-  }
-}
-
-async function scanCandidates(){
-  var btn = $('btnScan');
-  btn.disabled = true; btn.textContent = '扫描中…';
-  var r = await execCmd('sh ' + GC + ' candidates 2>/dev/null', 30000);
-  var lines = String(r.stdout||'').split('\n').filter(function(l){ return l.indexOf('\t') >= 0; });
-  ST.cand = lines.map(function(l){
-    var p = l.split('\t');
-    return { pr: parseInt(p[0],10) || 3, pkg: p[1] };
-  }).filter(function(c){ return c.pkg; });
-  ST.sel = {};
-  renderCandidates();
-  btn.disabled = false; btn.textContent = '扫描';
-
-  if (ST.cand.length){
-    var n0 = ST.cand.filter(function(c){ return c.pr <= 1; }).length;
-    var n2 = ST.cand.filter(function(c){ return c.pr === 2; }).length;
-    tip($('okTip'), '找到 ' + ST.cand.length + ' 个候选 · '
-      + n0 + ' 个疑似游戏 · ' + n2 + ' 个正在运行', 4000);
-  } else {
-    tip($('errTip'), '没有可添加的应用（都已在白名单里？）', 5000);
-  }
-}
-
-/* 状态 */
-var MODE_META = {
-  GAME:      { name:'游戏模式', badge:'放开性能', cls:'b-game',   box:'mGame' },
-  NORMAL:    { name:'日常模式', badge:'平衡流畅', cls:'b-normal', box:'mNormal' },
-  IDLE:      { name:'息屏模式', badge:'省电优先', cls:'b-idle',   box:'mIdle' }
+/* ===== 事件绑定 ===== */
+// 三态
+$('btnNormal').onclick=async function(){
+  await execCmd('rm -f /data/adb/mituner/game_until; echo NORMAL > /data/adb/mituner/force 2>/dev/null; echo ok',10000);
+  tip($('okTip'),'已切到日常',2500); setTimeout(refreshStatus,1800);
 };
-
-var busy = false;
-async function refreshStatus(){
-  if (busy) return;
-  busy = true;
-  var r = await execCmd(STATUS_CMD, 20000);
-  if (r.errno !== 0 && !r.stdout){
-    tip($('errTip'), '读取失败：' + (r.stderr || r.errno), 0);
-    busy = false;
-    return;
-  }
-  var d = parseKV(r.stdout);
-  var st = (d.STATE || 'NORMAL').trim();
-  var raw = (d.RAW || st).trim();
-  var meta = MODE_META[st] || MODE_META.NORMAL;
-  $('modeName').textContent = meta.name;
-  $('modeBadge').className = 'badge ' + meta.cls;
-  $('modeBadge').textContent = meta.badge;
-
-  // 显示「保持中」状态
-  $('modeSub').textContent = (raw === 'GAME_HOLD')
-    ? '当前调度档位 · 切后台保持中'
-    : '当前调度档位';
-
-  ['mGame','mNormal','mIdle'].forEach(function(id){ $(id).classList.remove('on'); });
-  $(meta.box).classList.add('on');
-
-  ST.curFg = d.FG || '';
-  $('fg').textContent = d.FG || '(无)';
-  var scrMap = { Awake:'亮屏', Asleep:'熄灭', Dozing:'AOD' };
-  $('screen').textContent = scrMap[d.SCR] || (d.SCR || '–');
-  $('screen').className = 'v ' + (d.SCR === 'Awake' ? 'g' : 'y');
-
-  var g = parseInt(d.GPU, 10);
-  $('gpu').textContent = isNaN(g) ? '–' : g + '%';
-  $('gpu').className = 'v ' + (isNaN(g)?'':(g>60?'r':(g>25?'y':'g')));
-
-  var dn = (d.DAEMON||'').trim();
-  $('daemon').textContent = dn==='running' ? '运行中' : '未运行';
-  $('daemon').className = 'v ' + (dn==='running'?'g':'r');
-
-  var hp = (d.HOT||'').trim();
-  $('hotupd').textContent = hp==='running' ? '监听中' : '未运行';
-  $('hotupd').className = 'v ' + (hp==='running'?'g':'y');
-
-  $('swap').textContent = d.SWAP || '–';
-  $('swap').className = 'v ' + (d.SWAP==='100'?'y':'g');
-  $('vfs').textContent = d.VFS || '–';
-  $('ra').textContent = (d.RA||'–') + ' KB';
-  $('rl').textContent = (d.RL||'–') + ' µs';
-
-  if (d.MODEL){
-    $('model').textContent = d.MODEL + ' · 系统调优';
-    $('footInfo').textContent = d.MODEL + ' / MTK';
-  }
-  if (ST.list.length) renderList();
-  busy = false;
-}
-
-/* 事件 */
-var tabs = document.querySelectorAll('.tab');
-for (var i=0;i<tabs.length;i++){
-  tabs[i].onclick = (function(t){
-    return function(){
-      var all = document.querySelectorAll('.tab');
-      for (var j=0;j<all.length;j++) all[j].classList.remove('on');
-      t.classList.add('on');
-      ['list','installed','manual'].forEach(function(k){
-        $('pane-'+k).style.display = (k === t.getAttribute('data-tab')) ? 'block' : 'none';
-      });
-    };
-  })(tabs[i]);
-}
-
-$('filterList').oninput = function(e){ ST.filter = e.target.value; renderList(); };
-$('filterInstalled').oninput = function(){ renderCandidates(); };
-$('btnScan').onclick = scanCandidates;
-$('btnSelNone').onclick = function(){ ST.sel = {}; renderCandidates(); };
-
-$('btnAddSel').onclick = async function(){
-  var keys = Object.keys(ST.sel);
-  if (!keys.length){ tip($('errTip'), '先勾选要添加的应用', 3000); return; }
-  var items = keys.map(function(p){ return { pkg: p, name: '' }; });
-  if (await addGames(items)){ ST.sel = {}; renderCandidates(); }
+$('btnGame').onclick=async function(){
+  await execCmd('echo GAME > /data/adb/mituner/force 2>/dev/null; echo ok',10000);
+  tip($('okTip'),'已切到游戏',2500); setTimeout(refreshStatus,1800);
 };
-
-$('btnAddManual').onclick = async function(){
-  var pkg = ($('inpPkg').value||'').trim();
-  var name = ($('inpName').value||'').trim();
-  if (!pkg){ tip($('errTip'), '请填包名', 3000); return; }
-  var p = safePkg(pkg);
-  if (!p){ tip($('errTip'), '包名格式不对，应该像 com.example.game', 5000); return; }
-  if (await addGames([{ pkg: p, name: name }])){
-    $('inpPkg').value = '';
-    $('inpName').value = '';
-  }
+$('btnReapply').onclick=async function(){
+  var b=this;b.disabled=true;var o=b.textContent;b.textContent='应用中…';
+  await execCmd('sh '+M+'/apply.sh >/dev/null 2>&1; echo ok',25000);
+  tip($('okTip'),'优化已重新应用',2500);
+  b.disabled=false;b.textContent=o; refreshStatus();
 };
-
-$('btnRestore').onclick = restoreBuiltin;
-$('btnRefresh').onclick = async function(){ await loadList(); await refreshStatus(); };
-
-$('btnReapply').onclick = async function(){
-  var b = this; b.disabled = true;
-  var old = b.textContent; b.textContent = '应用中…';
-  await execCmd('sh /data/adb/modules/mituner/apply.sh >/dev/null 2>&1; echo ok', 25000);
-  tip($('okTip'), '优化已重新应用', 3000);
-  b.disabled = false; b.textContent = old;
-  refreshStatus();
-};
-
-$('btnRestart').onclick = async function(){
-  var b = this; b.disabled = true;
-  var old = b.textContent; b.textContent = '重启中…';
-  var cmd = [
-    'for pf in /data/local/tmp/mituner.pid /data/local/tmp/mituner-hotupdate.pid; do',
-    '  [ -f "$pf" ] && kill -9 "$(cat "$pf")" 2>/dev/null',
-    '  rm -f "$pf"',
-    'done',
-    'sleep 1',
+$('btnRestart').onclick=async function(){
+  var b=this;b.disabled=true;var o=b.textContent;b.textContent='重启中…';
+  var cmd=['for pf in /data/local/tmp/mituner.pid /data/local/tmp/mituner-hotupdate.pid; do',
+    '[ -f "$pf" ] && kill -9 "$(cat "$pf")" 2>/dev/null','rm -f "$pf"','done','sleep 1',
     'BB=/data/adb/ap/bin/busybox; [ -x "$BB" ] || BB=busybox',
-    '$BB setsid sh /data/adb/modules/mituner/hotupdate.sh >/dev/null 2>&1 &',
-    'sleep 1',
-    '$BB setsid sh /data/adb/modules/mituner/service.sh >/dev/null 2>&1 &',
-    'sleep 4; echo OK'
+    '$BB setsid sh '+M+'/hotupdate.sh >/dev/null 2>&1 &','sleep 1',
+    '$BB setsid sh '+M+'/service.sh >/dev/null 2>&1 &','sleep 4','echo OK'].join('\n');
+  await execCmd(cmd,30000);
+  tip($('okTip'),'守护已重启',2500);
+  b.disabled=false;b.textContent=o; setTimeout(refreshStatus,1200);
+};
+
+// 参数滑块
+['sSwappiness','sVfs','sDirty','sRa','sRl'].forEach(function(id){
+  var el=$(id);
+  el.addEventListener('input',function(){
+    window._userDragging=true;
+    var v=el.value;
+    var m={sSwappiness:'vSwappiness',sVfs:'vVfs',sDirty:'vDirty',sRa:'vRa',sRl:'vRl'};
+    $(m[id]).textContent=v;
+  });
+});
+
+$('btnApplyParams').onclick=async function(){
+  var b=this;b.disabled=true;var o=b.textContent;b.textContent='应用中…';
+  var sw=$('sSwappiness').value, vf=$('sVfs').value, dr=$('sDirty').value;
+  var ra=$('sRa').value, rl=$('sRl').value;
+  var cmd=['echo '+sw+' > /proc/sys/vm/swappiness 2>/dev/null',
+    'echo '+vf+' > /proc/sys/vm/vfs_cache_pressure 2>/dev/null',
+    'echo '+dr+' > /proc/sys/vm/dirty_ratio 2>/dev/null',
+    'for q in /sys/block/*/queue; do case "$q" in *loop*|*ram*|*zram*) continue;; esac; echo '+ra+' > "$q/read_ahead_kb" 2>/dev/null; done',
+    'for p in /sys/devices/system/cpu/cpufreq/policy*; do echo '+rl+' > "$p/schedutil/rate_limit_us" 2>/dev/null; done',
+    'echo "OK sw=$(cat /proc/sys/vm/swappiness) vf=$(cat /proc/sys/vm/vfs_cache_pressure) ra=$(cat /sys/block/dm-47/queue/read_ahead_kb 2>/dev/null) rl=$(cat /sys/devices/system/cpu/cpufreq/policy7/schedutil/rate_limit_us 2>/dev/null)"'
   ].join('\n');
-  await execCmd(cmd, 30000);
-  tip($('okTip'), '守护进程已重启', 3000);
-  b.disabled = false; b.textContent = old;
-  setTimeout(refreshStatus, 1200);
+  var r=await execCmd(cmd,25000);
+  var d=kv(r.stdout);
+  if(String(r.stdout||'').indexOf('OK')>=0){
+    tip($('okTip'),'已应用：sw='+d.sw+' vf='+d.vf+' ra='+d.ra+' rl='+d.rl,4000);
+    window._userDragging=false;
+  }else tip($('errTip'),'应用失败',4000);
+  b.disabled=false;b.textContent=o; setTimeout(refreshStatus,1200);
 };
 
-$('btnNormal').onclick = async function(){
-  await execCmd('rm -f /data/adb/mituner/game_until; echo NORMAL > /data/adb/mituner/force 2>/dev/null; echo ok', 10000);
-  setTimeout(refreshStatus, 2000);
-};
-$('btnGame').onclick = async function(){
-  await execCmd('echo GAME > /data/adb/mituner/force 2>/dev/null; echo ok', 10000);
-  setTimeout(refreshStatus, 2000);
+$('btnResetParams').onclick=async function(){
+  if(!confirm('恢复原厂参数？\n\nswappiness=100 / vfs=100 / dirty=20 / 预读=1024 / 调频=1000'))return;
+  await execCmd('echo 100 > /proc/sys/vm/swappiness;echo 100 > /proc/sys/vm/vfs_cache_pressure;'
+    +'echo 20 > /proc/sys/vm/dirty_ratio;'
+    +'for q in /sys/block/*/queue; do case "$q" in *loop*|*ram*|*zram*) continue;; esac; echo 1024 > "$q/read_ahead_kb" 2>/dev/null; done;'
+    +'for p in /sys/devices/system/cpu/cpufreq/policy*; do echo 1000 > "$p/schedutil/rate_limit_us" 2>/dev/null; done;'
+    +'echo OK',25000);
+  tip($('okTip'),'已恢复原厂',2500);
+  window._userDragging=false;
+  setTimeout(refreshStatus,1200);
 };
 
+// 三态自定义
+var PROFSEL='GAME';
+document.querySelectorAll('[data-prof]').forEach(function(b){
+  b.onclick=function(){
+    document.querySelectorAll('[data-prof]').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    PROFSEL=b.getAttribute('data-prof');
+    loadProf();
+  };
+});
+
+async function loadProf(){
+  var r=await execCmd('cat /data/adb/mituner/profiles.conf 2>/dev/null || echo ""',15000);
+  var lines=String(r.stdout||'').split('\n');
+  var found=null;
+  lines.forEach(function(l){
+    if(l.indexOf(PROFSEL+'=')===0) found=l.slice(PROFSEL.length+1).trim();
+  });
+  var vals = found ? found.split(',') : (
+    PROFSEL==='GAME'?['40','60','512','200']:
+    PROFSEL==='NORMAL'?['60','80','256','500']:['80','120','128','2000']);
+  $('peSwap').textContent=vals[0]||'–';
+  $('peVfs').textContent=vals[1]||'–';
+  $('peRa').textContent=vals[2]||'–';
+  $('peRl').textContent=vals[3]||'–';
+  $('inpProfVal').value=vals.join(',');
+}
+
+$('btnSaveProf').onclick=async function(){
+  var v=($('inpProfVal').value||'').trim();
+  if(!/^\d+,\d+,\d+,\d+$/.test(v)){tip($('errTip'),'格式不对，应为 40,60,512,200',5000);return;}
+  var cmd='F=/data/adb/mituner/profiles.conf;touch "$F";'
+    +'grep -v "^'+PROFSEL+'=" "$F" > "$F.t" 2>/dev/null;mv "$F.t" "$F" 2>/dev/null;'
+    +'echo "'+PROFSEL+'='+v+'" >> "$F";echo OK';
+  await execCmd(cmd,15000);
+  tip($('okTip'),PROFSEL+' 档已保存为 '+v,3000);
+  await loadProf();
+};
+
+$('btnResetProf').onclick=async function(){
+  await execCmd('F=/data/adb/mituner/profiles.conf;touch "$F";'
+    +'grep -v "^'+PROFSEL+'=" "$F" > "$F.t" 2>/dev/null;mv "$F.t" "$F";echo OK',15000);
+  tip($('okTip'),PROFSEL+' 档已恢复默认',2500);
+  await loadProf();
+};
+
+// GPU
+document.querySelectorAll('[data-gprof]').forEach(function(b){
+  b.onclick=async function(){
+    var p=b.getAttribute('data-gprof');
+    var r=await execCmd('sh '+GP+' profile '+p+' 2>&1',20000);
+    tip(String(r.stdout||'').indexOf('OK')>=0?$('okTip'):$('errTip'),
+      'GPU 已切到 '+p,3000);
+    loadTune();
+  };
+});
+$('btnGpuReset').onclick=async function(){
+  await execCmd('sh '+GP+' reset 2>&1',20000);
+  tip($('okTip'),'GPU 已恢复原厂',2500); loadTune();
+};
+$('btnGpuApply').onclick=async function(){
+  var f=($('inpGpuFreq').value||'').trim();
+  if(!/^\d+$/.test(f)){tip($('errTip'),'请输入频率数字（Hz）',4000);return;}
+  var r=await execCmd('sh '+GP+' set max '+f+' 2>&1',20000);
+  var o=String(r.stdout||'');
+  if(o.indexOf('OK')>=0){tip($('okTip'),'GPU 上限已设为 '+f,3000);loadTune();}
+  else tip($('errTip'),o.slice(0,80)||'设置失败',5000);
+};
+
+// 充电
+['sChgCap','sChgLimit'].forEach(function(id){
+  $(id).addEventListener('input',function(){
+    var m={sChgCap:'vChgCap',sChgLimit:'vChgLimit'};
+    var s=id==='sChgCap'?'%':'mA';
+    $(m[id]).textContent=$(id).value+s;
+  });
+});
+$('btnChgApply').onclick=async function(){
+  var cap=$('sChgCap').value, lim=$('sChgLimit').value;
+  await execCmd('sh '+CH+' cap '+cap+' 2>&1;sh '+CH+' limit '+lim+' 2>&1',25000);
+  tip($('okTip'),'充电上限 '+cap+'% · 限流 '+lim+'mA 已应用',3500);
+  loadTune();
+};
+$('btnChgStop').onclick=async function(){
+  if(!confirm('立即停止充电？\n\n手机将靠电池供电，会持续掉电。'))return;
+  await execCmd('sh '+CH+' stop 2>&1',15000);
+  tip($('okTip'),'已停止充电',3000); loadTune();
+};
+$('btnChgReset').onclick=async function(){
+  await execCmd('sh '+CH+' reset 2>&1',20000);
+  tip($('okTip'),'充电控制已恢复原厂',2500); loadTune();
+};
+
+// 散热器
+$('btnCoolOn').onclick=async function(){
+  await execCmd('sh '+CO+' on 2>&1',25000);
+  tip($('okTip'),'散热器模式已开启',3000); loadTune();
+};
+$('btnCoolOff').onclick=async function(){
+  await execCmd('sh '+CO+' off 2>&1',25000);
+  tip($('okTip'),'散热器模式已关闭',2500); loadTune();
+};
+
+// 后台限制
+$('btnBgOn').onclick=async function(){
+  var r=await execCmd('sh '+BG+' on 2>&1',20000);
+  tip($('okTip'),'后台限制已启用',3000); loadTune();
+};
+$('btnBgOff').onclick=async function(){
+  await execCmd('sh '+BG+' off 2>&1',20000);
+  tip($('okTip'),'后台限制已关闭',2500); loadTune();
+};
+
+// 游戏 tab
+document.querySelectorAll('[data-gtab]').forEach(function(b){
+  b.onclick=function(){
+    document.querySelectorAll('[data-gtab]').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on');
+    var t=b.getAttribute('data-gtab');
+    ['list','add','manual'].forEach(function(k){
+      $('gpane-'+k).style.display=(k===t)?'block':'none';
+    });
+  };
+});
+
+$('filterList').oninput=function(e){GS.filter=e.target.value;renderList();};
+$('filterInstalled').oninput=function(){renderCand();};
+$('btnScan').onclick=scanCand;
+$('btnSelNone').onclick=function(){GS.sel={};renderCand();};
+$('btnAddSel').onclick=async function(){
+  var k=Object.keys(GS.sel);
+  if(!k.length){tip($('errTip'),'先勾选应用',3000);return;}
+  if(await addGames(k.map(function(p){return{pkg:p,name:''};}))){GS.sel={};renderCand();}
+};
+$('btnAddManual').onclick=async function(){
+  var p=($('inpPkg').value||'').trim(), n=($('inpName').value||'').trim();
+  if(!p){tip($('errTip'),'请填包名',3000);return;}
+  var v=safePkg(p); if(!v){tip($('errTip'),'格式不对，像 com.example.game',5000);return;}
+  if(await addGames([{pkg:v,name:n}])){$('inpPkg').value='';$('inpName').value='';}
+};
+$('btnRestore').onclick=async function(){
+  if(!confirm('恢复内置 109 款名单？\n\n自定义的会丢失。'))return;
+  var r=await execCmd('sh '+GC+' restore 2>&1',20000);
+  if(String(r.stdout||'').indexOf('OK')>=0){
+    tip($('okTip'),'已恢复内置名单',3000); await loadList();
+  }else tip($('errTip'),'恢复失败',4000);
+};
+
+// 日志
+document.querySelectorAll('[data-log]').forEach(function(b){
+  b.onclick=function(){
+    var t=b.getAttribute('data-log');
+    if(t==='clear'){
+      if(!confirm('清空当前日志？'))return;
+      var f=LOGTYPE==='debug'?'/data/local/tmp/mituner-debug.log':'/data/local/tmp/mituner.log';
+      execCmd(': > '+f+'; echo OK',10000);
+      tip($('okTip'),'已清空',2000); setTimeout(loadLog,600);
+      return;
+    }
+    document.querySelectorAll('[data-log]').forEach(function(x){
+      if(x.getAttribute('data-log')!=='clear')x.classList.remove('on');});
+    b.classList.add('on');
+    LOGTYPE=t; loadLog();
+  };
+});
+$('btnLogRefresh').onclick=loadLog;
+$('btnLogAuto').onclick=function(){
+  if(logTimer){clearInterval(logTimer);logTimer=null;this.textContent='自动刷新: 关';this.classList.remove('on');}
+  else{logTimer=setInterval(loadLog,3000);this.textContent='自动刷新: 开';this.classList.add('on');}
+};
+
+/* ===== 启动 ===== */
 (async function(){
-  await loadList();
   await refreshStatus();
-  setInterval(refreshStatus, 8000);
+  await loadList();
+  await loadProf();
+  setInterval(refreshStatus,8000);
 })();
 </script>
 </body>

@@ -310,19 +310,47 @@ switch_state() {
 # ---------- 主循环 ----------
 # ★ 融合：确保 battd（电池管家）在运行
 ensure_battd() {
-  local PIDF=/data/adb/battery-manager/battd.pid
-  local BIN=/data/adb/modules/mituner/bin/battd
-  if [ -f "$PIDF" ]; then
-    local p=$(cat "$PIDF" 2>/dev/null)
-    if [ -n "$p" ] && [ -d "/proc/$p" ]; then
-      local c=$(tr "\0" " " < /proc/$p/cmdline 2>/dev/null)
-      case "$c" in *battd*) dbg "battd 已在运行 pid=$p"; return 0;; esac
+  local BM=/data/adb/battery-manager
+  local SUP=$MODDIR/supervisor.sh
+  # 1. 同步二进制到数据目录（模块升级后要更新）
+  if [ -f "$MODDIR/bin/battd" ]; then
+    local s1=$(sha256sum "$MODDIR/bin/battd" 2>/dev/null | cut -d" " -f1)
+    local s2=$(sha256sum "$BM/battd" 2>/dev/null | cut -d" " -f1)
+    if [ "$s1" != "$s2" ]; then
+      cp -f "$MODDIR/bin/battd" "$BM/battd" 2>/dev/null
+      chmod 755 "$BM/battd" 2>/dev/null
+      log "已同步 battd 到数据目录"
     fi
   fi
-  if [ -x "$BIN" ]; then
-    mkdir -p /data/adb/battery-manager
-    /data/adb/ap/bin/busybox setsid "$BIN" >/dev/null 2>&1 &
-    log "已启动 battd"
+  # 2. 同步 sampler
+  if [ -f "$MODDIR/bin/power-sampler.sh" ] && [ ! -f "$BM/power-sampler.sh" ]; then
+    cp -f "$MODDIR/bin/power-sampler.sh" "$BM/power-sampler.sh" 2>/dev/null
+    chmod 755 "$BM/power-sampler.sh" 2>/dev/null
+  fi
+  # 2.5 同步 WebUI 到 battd 的 webroot（模块升级后要更新）
+  if [ -d "$MODDIR/webroot/battery" ]; then
+    mkdir -p "$BM/webroot" 2>/dev/null
+    for wf in "$MODDIR"/webroot/battery/*; do
+      [ -f "$wf" ] || continue
+      local wn=$(basename "$wf")
+      local ws1=$(sha256sum "$wf" 2>/dev/null | cut -d" " -f1)
+      local ws2=$(sha256sum "$BM/webroot/$wn" 2>/dev/null | cut -d" " -f1)
+      if [ "$ws1" != "$ws2" ]; then
+        cp -f "$wf" "$BM/webroot/$wn" 2>/dev/null
+      fi
+    done
+  fi
+
+  # 3. 用 supervisor 拉起（自带守护，挂了会自动重启）
+  if [ -f "$SUP" ]; then
+    sh "$SUP" start >/dev/null 2>&1
+    sleep 2
+    local bp=$(cat "$BM/battd.pid" 2>/dev/null)
+    if [ -n "$bp" ] && [ -d "/proc/$bp" ]; then
+      log "battd 已运行 pid=$bp"
+    else
+      log "battd 启动失败"
+    fi
   fi
 }
 

@@ -1,7 +1,7 @@
 id=mituner
 name=MiTuner 系统调优
-version=v4.0.0
-versionCode=400
+version=v4.0.1
+versionCode=401
 author=aplm123
 description=全能模块。融合三大功能：①系统调优（三态调度/GPU/刷新率/内存/IO/网络/温控）②电池管家（battd C守护进程：充电限制/温度保护/曲线/统计/校准）③隐藏清理（设备伪装/环境隐藏/指纹/游戏清理/SELinux/SSAID）。8个标签页，全部热更新。
 updateJson=https://raw.githubusercontent.com/ce11kjw/mituner/main/update.json

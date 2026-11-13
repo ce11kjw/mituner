@@ -1,0 +1,16 @@
+codev|无畏契约|com.tencent.tmgp.codev|files/ano_tmp|cache|code_cache
+dfm|三角洲行动|com.tencent.tmgp.dfm|files/ano_tmp|files/MSDK.mmap3|app_dex|app_tbs|app_tbs_64|app_webview|app_x5webview|cache|code_cache|databases|app_crashSight|app_geolocation|app_midasodex|app_midaslib_0|app_midaslib_1|app_msdk|app_textures
+pubgmhd|和平精英|com.tencent.tmgp.pubgmhd|files/ano_tmp|cache|code_cache|databases|cache/GCloudSDKLog|cache/GameJoyRecorder/logs|files/TGPA/Log
+uam|暗区突围|com.tencent.mf.uam|files/ano_tmp|app_dex|app_tbs|app_tbs_64|app_webview|app_x5webview|cache|code_cache|databases|app_crashrecord|app_midasodex|app_midaslib_0|app_midaslib_1|app_msdk|app_textures|app_tomb
+uamo|暗区突围国际|com.proximabeta.mf.uamo|app_dex|app_tbs|app_tbs_64|app_webview|app_x5webview|cache|code_cache|databases|app_crashrecord|app_crashSight|app_midasodex|app_midaslib_0|app_midaslib_1|app_msdk|app_textures
+sgame|王者荣耀|com.tencent.tmgp.sgame|files/ano_tmp|files/MSDK.mmap3|app_dex|app_tbs|app_tbs_64|app_webview|app_x5webview|cache|code_cache|databases|app_crashrecord|app_crashSight|app_midasodex|app_midaslib_0|app_midaslib_1|app_textures
+cod|使命召唤|com.tencent.tmgp.cod|files/ano_tmp|app_dex|app_tbs|app_tbs_64|app_webview|app_x5webview|cache|code_cache|databases|app_bugly|app_crashrecord|app_midasodex|app_midaslib_0|app_midaslib_1|app_midasplugins|app_qmsp|app_textures|app_tomb|app_turingdfp|app_turingfd
+cf|穿越火线|com.tencent.tmgp.cf|files/ano_tmp
+gnyx|失控进化|com.tencent.tmgp.gnyx|files/ano_tmp
+kihan|火影忍者|com.tencent.KiHan|files/ano_tmp|app_dex|app_tbs|cache|code_cache|databases
+rmcn|热血合击|com.tencent.rmcn|cache|files/.cache|files1
+ig|PUBG国际服|com.tencent.ig|files/ProgramBinaryCache|files/TGPA|files/login-identifier.txt|databases|shared_prefs
+igce|PUBG日韩服|com.tencent.igce|files/ProgramBinaryCache|files/TGPA|files/login-identifier.txt|databases|shared_prefs
+krmobile|PUBG韩服|com.pubg.krmobile|files/ProgramBinaryCache|files/TGPA|files/login-identifier.txt|databases|shared_prefs
+vng|PUBG越南服|com.vng.pubgmobile|files/ProgramBinaryCache|files/TGPA|files/login-identifier.txt|databases|shared_prefs
+rekoo|PUBG日服|com.rekoo.pubgm|files/ProgramBinaryCache|files/TGPA|files/login-identifier.txt|databases|shared_prefs

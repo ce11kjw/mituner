@@ -1,5 +1,84 @@
 # Changelog
 
+## [v4.0.1] - 2026-11-14
+
+### 🐛 融合版修复
+
+v4.0.0 发布后实测发现 3 个融合遗留问题，全部修复。
+
+---
+
+### 1️⃣ battd 路径不匹配（关键）
+
+**问题**：`supervisor.sh` 里 `BIN=$DIR/battd`（=`/data/adb/battery-manager/battd`），
+但模块里的二进制在 `/data/adb/modules/mituner/bin/battd`，导致守护报
+`bin missing: /data/adb/battery-manager/battd`。
+
+**修法**：沿用 ChargeControl 原生设计 —— **开机时自动同步到数据目录**：
+- `bin/battd` → `/data/adb/battery-manager/battd`（sha256 比对，不一致才覆盖）
+- `bin/power-sampler.sh` → 同目录
+- `supervisor.sh` 保持原样（不改脚本，减少维护成本）
+
+### 2️⃣ ensure_battd 改成走 supervisor
+
+原来直接 `setsid battd &`，**没有守护**（进程挂了不会自动拉起）。
+
+现在：`ensure_battd()` → `supervisor.sh start` → supervisor 拉起 battd 并持续监控。
+实测日志：`supervisor start pid=16549` → `started battd pid=16567`。
+
+### 3️⃣ WebUI 不随模块升级更新
+
+battd 的网页在 `/data/adb/battery-manager/webroot/`，**模块升级不会同步**。
+→ 新增 sha256 比对同步（在 `ensure_battd` 里）。
+
+---
+
+### 🔪 杀进程自杀坑（又踩了）
+
+用 `for d in /proc/*; do ... kill -9 $pid` 清理 battd 时，
+**把自己的 MCP shell 也杀了**（因为命令行里含 "battd" 字符串）。
+
+**正确做法**：用 `/proc/$pid/exe` 的 readlink 精确匹配：
+```sh
+for d in /proc/[0-9]*; do
+  lnk=$(readlink "$d/exe" 2>/dev/null) || continue
+  case "$lnk" in *"/bin/battd"*) kill -9 "${d#/proc/}";; esac
+done
+```
+
+---
+
+### ✅ 验收结果
+
+| 组件 | 状态 |
+|---|---|
+| MiTuner service | ✓ 15159 |
+| MiTuner hotupdate | ✓ 15131 |
+| ChargeControl supervisor | ✓ 16549 |
+| ChargeControl battd | ✓ 16567 |
+| battd API | ✓ 6419 字节 |
+| InkVault scripts | ✓ 15 个 |
+| 游戏白名单 | ✓ 109 款 |
+
+**电池数据实测**：21% / 36°C / 放电中 / 上限 80% / SoC 51° / 充电IC 40° / 87 循环 / 健康 100 / 剩 713 次
+
+**API 全部可用**：
+```
+/api/status    6419 B
+/api/history   1374 B
+/api/export    3390 B
+/api/log       1792 B
+/api/calibrate  124 B
+```
+
+**MiTuner 原功能回归全部通过**：
+内存 AVAIL=7311 / 刷新率 144Hz / IO none / GPU dummy / 电池 87 循环 / 网络 cubic
+
+**WebUI**：主 79907B（8 页）/ 隐藏 65609B / 电池 53675B
+
+---
+
+
 ## [v4.0.0] - 2026-11-14
 
 ### 🎉 三模块融合

@@ -24,7 +24,6 @@ header{display:flex;align-items:center;gap:11px;margin-bottom:18px}
 h1{font-size:19px;font-weight:650;letter-spacing:.3px}
 .sub{font-size:12px;color:var(--dim);margin-top:2px;font-weight:400}
 
-/* 状态大卡 */
 .hero{background:linear-gradient(135deg,rgba(167,139,250,.12),rgba(34,211,238,.06));
   border:1px solid rgba(167,139,250,.26);border-radius:17px;padding:19px 17px;
   margin-bottom:13px;position:relative;overflow:hidden}
@@ -55,7 +54,6 @@ h1{font-size:19px;font-weight:650;letter-spacing:.3px}
   word-break:break-all;max-width:62%;color:var(--txt)}
 .v.g{color:var(--lime)}.v.r{color:var(--err)}.v.y{color:var(--warn)}.v.c{color:var(--ok)}.v.p{color:var(--purple)}
 
-/* 三态说明 */
 .modes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px}
 .mode-box{background:var(--card2);border:1px solid transparent;border-radius:11px;
   padding:11px 9px;text-align:center;font-size:11.5px;line-height:1.45;transition:.2s}
@@ -85,6 +83,19 @@ footer{text-align:center;font-size:11px;color:#3f4d63;margin-top:20px;line-heigh
   border-top-color:var(--purple);border-radius:50%;
   animation:sp .7s linear infinite;vertical-align:-1px;margin-right:5px}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* 游戏列表 */
+.games-list{max-height:220px;overflow-y:auto;margin-top:8px;
+  -webkit-overflow-scrolling:touch}
+.games-list::-webkit-scrollbar{width:3px}
+.games-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
+.gitem{display:flex;justify-content:space-between;padding:5px 0;
+  font-size:11px;border-bottom:1px solid rgba(30,41,59,.4);font-family:ui-monospace,Menlo,monospace}
+.gitem:last-child{border-bottom:none}
+.gname{color:var(--txt);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gpkg{color:var(--dim);font-size:10px;margin-left:8px;flex:0 0 auto;max-width:58%;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gitem.hit .gname{color:var(--err);font-weight:700}
 </style>
 </head>
 <body>
@@ -129,6 +140,19 @@ footer{text-align:center;font-size:11px;color:#3f4d63;margin-top:20px;line-heigh
     <div class="kv"><span class="k">屏幕</span><span class="v" id="screen">–</span></div>
     <div class="kv"><span class="k">GPU 负载</span><span class="v" id="gpu">–</span></div>
     <div class="kv"><span class="k">守护进程</span><span class="v" id="daemon">–</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">
+      <span>游戏白名单</span>
+      <span style="font-size:10px;letter-spacing:0;color:var(--lime)" id="gameCount">–</span>
+    </div>
+    <div class="games-list" id="gamesList"><div style="color:var(--dim);font-size:12px"><span class="spin"></span>读取中…</div></div>
+    <div class="note">
+      只收录<b>大型/3A 游戏</b>（开放世界、FPS、MOBA、动作竞技等重负载）。
+      小众休闲游戏不需要纳入。自己加游戏：编辑
+      <code>/data/adb/mituner/games.conf</code>，加一行包名即可，无需重启。
+    </div>
   </div>
 
   <div class="card">
@@ -219,14 +243,14 @@ function execCmd(cmd, timeoutMs){
   });
 }
 
-/* ===== 采集 ===== */
+/* ===== 采集状态 ===== */
 const STATUS_CMD = `
 S=/data/adb/mituner/state
 FG=$(timeout 4 dumpsys window 2>/dev/null | grep mCurrentFocus | head -1 | sed 's/.*u0 \\([^\\/]*\\).*/\\1/')
 SCR=$(dumpsys power 2>/dev/null | grep -oE "mWakefulness=(Awake|Asleep|Dozing)" | head -1 | sed 's/.*=//')
 GPU=$(cat /sys/module/ged/parameters/gpu_loading 2>/dev/null | head -1)
 ST=$(cat $S 2>/dev/null)
-DAEMON=$(pgrep -f "mituner/service.sh" >/dev/null 2>&1 && echo running || echo stopped)
+DAEMON=$(pgrep -f "mituner/serv""ice.sh" >/dev/null 2>&1 && echo running || echo stopped)
 SWAP=$(cat /proc/sys/vm/swappiness 2>/dev/null)
 VFS=$(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null)
 RA=$(cat /sys/block/dm-47/queue/read_ahead_kb 2>/dev/null)
@@ -235,9 +259,25 @@ M0=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 2>/dev/null)
 M4=$(cat /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 2>/dev/null)
 M7=$(cat /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq 2>/dev/null)
 MODEL=$(getprop ro.product.odm.marketname)
-VER=$(grep '^version=' /data/adb/modules/mituner/module.prop 2>/dev/null | cut -d= -f2)
-printf 'FG=%s\\nSCR=%s\\nGPU=%s\\nSTATE=%s\\nDAEMON=%s\\nSWAP=%s\\nVFS=%s\\nRA=%s\\nRL=%s\\nM0=%s\\nM4=%s\\nM7=%s\\nMODEL=%s\\nVER=%s\\n' \\
- "$FG" "$SCR" "$GPU" "$ST" "$DAEMON" "$SWAP" "$VFS" "$RA" "$RL" "$M0" "$M4" "$M7" "$MODEL" "$VER"
+GC=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' -e '/^$/d' /data/adb/mituner/games.conf 2>/dev/null | wc -l)
+printf 'FG=%s\\nSCR=%s\\nGPU=%s\\nSTATE=%s\\nDAEMON=%s\\nSWAP=%s\\nVFS=%s\\nRA=%s\\nRL=%s\\nM0=%s\\nM4=%s\\nM7=%s\\nMODEL=%s\\nGC=%s\\n' \\
+ "$FG" "$SCR" "$GPU" "$ST" "$DAEMON" "$SWAP" "$VFS" "$RA" "$RL" "$M0" "$M4" "$M7" "$MODEL" "$GC"
+`.trim();
+
+/* 游戏列表（带中文名） */
+const GAMES_CMD = `
+awk 'BEGIN{
+  split("com.tencent.tmgp.sgame:王者荣耀|com.tencent.tmgp.sgamece:王者荣耀体验服|com.tencent.lolm:英雄联盟手游|com.levelinfinite.sgameGlobal.midaspay:王者荣耀国际版|com.garena.game.kgtw:传说对决|com.tencent.jkchess:金铲铲之战|com.tencent.tmgp.pubgmhd:和平精英|com.tencent.ig:PUBG Mobile|com.rekoo.pubgm:PUBG台服|com.pubg.imobile:PUBG韩服|com.pubg.krmobile:PUBG韩国版|com.pubg.newstate:PUBG NewState|com.tencent.tmgp.cod:使命召唤手游|com.activision.callofduty.warzone:COD Warzone|com.activision.callofduty.shooter:COD射手版|com.tencent.tmgp.dfm:三角洲行动|com.tencent.mf.uam:暗区突围|com.proximabeta.mf.uamo:暗区突围海外|com.tencent.tmgp.cf:穿越火线|com.tencent.tmgp.gnyx:高能英雄|com.proximabeta.nikke:NIKKE|com.epicgames.fortnite:Fortnite|com.dts.freefireth:FreeFire|com.mobile.legends:MobileLegends|com.riotgames.league.wildrift:LOL手游国际|com.tencent.tmgp.dnf:DNF手游|com.tencent.KiHan:火影忍者|com.tencent.naruto:火影国际|com.tencent.tmgp.speedmobile:QQ飞车|com.garena.game.fctw:QQ飞车台服|com.tencent.nfsonline:极品飞车集结|com.tencent.letsgo:元梦之星|com.tencent.tmgp.eyou.eygy:光遇腾讯版|com.tencent.tmgp.wdsj666:我的世界腾讯|com.tencent.tmgp.mhxy.sqsy:梦幻西游三维|com.tencent.tmgp.qqx5:QQ炫舞|com.tencent.game.rhythmmaster:节奏大师|com.tencent.nba2kx:美职篮全明星|com.tencent.tmgp.supercell.clashofclans:部落冲突|com.tencent.tmgp.supercell.brawlstars:荒野乱斗|com.miHoYo.Yuanshen:原神|com.miHoYo.GenshinImpact:原神国际|com.miHoYo.ys.bilibili:原神B服|com.miHoYo.ys.mi:原神米服|com.miHoYo.hkrpg:星穹铁道|com.miHoYo.hkrpg.bilibili:星铁B服|com.HoYoverse.hkrpgoversea:星铁国际|com.miHoYo.Nap:绝区零|com.mihoyo.nap.bilibili:绝区零B服|com.HoYoverse.Nap:绝区零国际|com.miHoYo.bh3:崩坏3|com.miHoYo.bh3.mi:崩坏3米服|com.miHoYo.bh3.bilibili:崩坏3B服|com.miHoYo.enterprise.NGHSoD:崩坏3国际|com.netease.l22:永劫无间|com.netease.l22.mi:永劫无间米服|com.netease.nshm:逆水寒|com.netease.nshm.mi:逆水寒米服|com.netease.nshmhmt:逆水寒国际|com.netease.yyslscn:燕云十六声|com.netease.yyslshmt:燕云台服|com.netease.mrzh:明日之后|com.netease.mrzh.mi:明日之后米服|com.netease.dwrg:第五人格|com.netease.dwrg.mi:第五人格米服|com.netease.hyxd.mi:荒野行动|com.netease.hyxd.nearme.gamecenter:荒野行动渠道|com.netease.hyxd.aligames:荒野行动阿里|com.netease.party:蛋仔派对|com.netease.party.nearme.gamecenter:蛋仔派对渠道|com.netease.sky:光遇|com.netease.sky.mi:光遇米服|com.netease.sky.bilibili:光遇B服|com.tgc.sky.android:光遇国际|com.netease.my:梦幻西游|com.netease.moba:决战平安京|com.netease.race:巅峰极速|com.netease.aceracer:王牌竞速|com.netease.qrsj:七日世界|com.netease.harrypotter:哈利波特|com.netease.allstar:全明星街球|com.kurogame.mingchao:鸣潮|com.kurogame.wutheringwaves.global:鸣潮国际|com.kurogame.haru.hero:战双帕弥什|com.kurogame.haru.mi:战双米服|com.kurogame.haru.aligames:战双阿里|com.hypergryph.arknights:明日方舟|com.hypergryph.arknights.bilibili:明日方舟B服|com.YoStarEN.Arknights:明日方舟国际|com.papegames.nn4:恋与深空|com.papegames.infinitynikki:无限暖暖|com.bluepoch.m.reverse1999:重返未来1999|com.bilibili.azurlane:碧蓝航线|com.pwrd.hotta.laohu:幻塔|com.hottagames.hotta.mi:幻塔米服|com.hottagames.hotta.bilibili:幻塔B服|com.dw.h5yvzr.yt:幻塔渠道|com.hermes.h1game:航海王热血航线|com.hermes.h1game.m4399:航海王4399|com.mojang.minecraftpe:我的世界|com.netease.x19:我的世界网易|com.ea.gp.apexlegendsmobilefps:Apex手游|com.neowizgames.game.browndust2:棕色尘埃2|com.hero.sm.android:创造与魔法|com.hero.sm.bz:创造与魔法bz|com.pi.czrxdfirst:超自然行动组|com.yoka.sgs.x:三国杀一将成名|cn.jj.chess:JJ象棋|cn.jj.chess.mi:JJ象棋米服", p, "|");
+  for(i in p){ split(p[i], kv, ":"); m[kv[1]] = kv[2] }
+}
+/^[[:space:]]*#/ { next }
+NF==0 { next }
+{
+  pkg=$0
+  gsub(/[[:space:]]/, "", pkg)
+  name = (pkg in m) ? m[pkg] : "?"
+  printf "%s\\t%s\\n", name, pkg
+}' /data/adb/mituner/games.conf 2>/dev/null
 `.trim();
 
 function parseKV(out){
@@ -259,6 +299,7 @@ const MODE_META = {
 };
 
 let busy = false;
+let gamesLoaded = false;
 
 async function load(){
   if (busy) return;
@@ -279,7 +320,6 @@ async function load(){
   const d = parseKV(r.stdout);
   tip.style.display = 'none';
 
-  // 状态
   const st = (d.STATE || 'NORMAL').trim();
   const meta = MODE_META[st] || MODE_META.NORMAL;
   $('modeName').textContent = meta.name;
@@ -290,7 +330,6 @@ async function load(){
   ['mGame','mNormal','mIdle'].forEach(id => $(id).classList.remove('on'));
   $(meta.box).classList.add('on');
 
-  // 运行状态
   $('fg').textContent = d.FG || '(无)';
   const scrMap = { Awake:'亮屏', Asleep:'熄灭', Dozing:'AOD' };
   $('screen').textContent = scrMap[d.SCR] || (d.SCR || '–');
@@ -304,7 +343,6 @@ async function load(){
   $('daemon').textContent = dn === 'running' ? '运行中' : '未运行';
   $('daemon').className = 'v ' + (dn === 'running' ? 'g' : 'r');
 
-  // 参数
   $('swap').textContent = d.SWAP || '–';
   $('swap').className = 'v ' + (d.SWAP === '100' ? 'y' : 'g');
   $('vfs').textContent = d.VFS || '–';
@@ -315,13 +353,63 @@ async function load(){
   const f = v => Math.round(parseInt(v,10) / 1000) + 'M';
   $('cpumin').textContent = f(d.M0||0) + ' / ' + f(d.M4||0) + ' / ' + f(d.M7||0);
 
+  const gc = parseInt(d.GC, 10) || 0;
+  $('gameCount').textContent = gc + ' 款';
+
   if (d.MODEL){
     $('model').textContent = d.MODEL + ' · 系统调优';
     $('footInfo').textContent = d.MODEL + ' / MTK';
   }
 
+  // 游戏列表（只加载一次，省流量）
+  if (!gamesLoaded){
+    gamesLoaded = true;
+    loadGames(d.FG);
+  } else {
+    markCurrentGame(d.FG);
+  }
+
   busy = false;
   btn.textContent = '↻ 刷新状态';
+}
+
+let gameRows = [];
+
+async function loadGames(curFg){
+  const r = await execCmd(GAMES_CMD, 20000);
+  const box = $('gamesList');
+  const lines = String(r.stdout||'').split('\n').filter(l => l.indexOf('\t') > 0);
+  if (!lines.length){
+    box.innerHTML = '<div style="color:var(--warn);font-size:12px">⚠ 未读取到白名单（games.conf 可能不存在）</div>';
+    return;
+  }
+  gameRows = lines.map(l => {
+    const p = l.split('\t');
+    return { name: p[0], pkg: p[1], el: null };
+  });
+  let html = '';
+  gameRows.forEach((g, i) => {
+    html += '<div class="gitem" data-i="' + i + '">'
+      + '<span class="gname">' + esc(g.name) + '</span>'
+      + '<span class="gpkg">' + esc(g.pkg) + '</span></div>';
+  });
+  box.innerHTML = html;
+  gameRows.forEach((g, i) => { g.el = box.children[i]; });
+  markCurrentGame(curFg);
+}
+
+function markCurrentGame(fg){
+  if (!gameRows.length || !fg) return;
+  gameRows.forEach(g => {
+    if (!g.el) return;
+    if (g.pkg === fg) g.el.classList.add('hit');
+    else g.el.classList.remove('hit');
+  });
+}
+
+function esc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 async function forceMode(m){
@@ -333,7 +421,7 @@ async function forceMode(m){
   setTimeout(() => { b.disabled = false; b.textContent = old; load(); }, 2500);
 }
 
-$('btnRefresh').onclick = load;
+$('btnRefresh').onclick = () => { gamesLoaded = false; load(); };
 $('btnNormal').onclick = () => forceMode('NORMAL');
 $('btnGame').onclick = () => forceMode('GAME');
 

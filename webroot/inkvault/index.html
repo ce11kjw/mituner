@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>墨匣 InkVault</title>
+<style>
+:root{--bg:#0a0a0f;--surf:#111118;--card:#16161f;--border:#232330;--accent:#5b8af0;--accent2:#a78bfa;--green:#34d399;--orange:#fb923c;--red:#f87171;--text:#e2e2f0;--muted:#55556a;--mono:'JetBrains Mono','Courier New',monospace;--sans:'PingFang SC','Noto Sans SC',-apple-system,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);padding-top:2vh}
+.topbar{position:sticky;top:0;z-index:200;background:rgba(10,10,15,.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;gap:10px}
+.topbar-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0;letter-spacing:.5px}
+.topbar-title{font-size:15px;font-weight:700;letter-spacing:1px}
+.topbar-sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.topbar-author{margin-left:auto;font-size:10px;color:var(--muted);font-family:var(--mono);background:var(--card);border:1px solid var(--border);border-radius:20px;padding:3px 10px;white-space:nowrap}
+.topbar-author em{color:var(--accent);font-style:normal}
+.tabbar{position:sticky;top:54px;z-index:100;background:var(--surf);border-bottom:1px solid var(--border);display:flex;padding:0 12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tabbar::-webkit-scrollbar{display:none}
+.tab{padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-family:var(--sans);font-size:13px;cursor:pointer;letter-spacing:.3px;white-space:nowrap;flex-shrink:0}
+.tab.on{color:var(--accent);border-bottom-color:var(--accent)}
+.page{padding:14px;max-width:720px;margin:0 auto}
+.panel{display:none}.panel.on{display:block}
+.loader{display:flex;align-items:center;justify-content:center;gap:10px;padding:50px 0;color:var(--muted);font-size:13px}
+.spin{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err-msg{color:var(--red);font-size:13px;font-family:var(--mono);text-align:center;line-height:1.8;padding:0 16px}
+.empty-msg{color:var(--muted);font-size:13px;text-align:center;padding:40px 16px;line-height:1.8}
+.empty-msg em{color:var(--accent2);font-style:normal}
+.section{font-size:10px;letter-spacing:3px;color:var(--accent2);text-transform:uppercase;margin:22px 0 8px;display:flex;align-items:center;gap:8px}
+.section::after{content:'';flex:1;height:1px;background:var(--border)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:420px){.grid{grid-template-columns:1fr}}
+.cell{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.cell.wide{grid-column:1/-1}
+.cell-label{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.cell-val{font-size:13px;font-family:var(--mono);word-break:break-all;line-height:1.4}
+.cell-val.hi{color:var(--accent)}.cell-val.ok{color:var(--green)}.cell-val.warn{color:var(--orange)}
+.bat-bar{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+.bat-fill{height:100%;border-radius:2px;transition:width .5s}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.count{font-size:11px;color:var(--muted);font-family:var(--mono);flex:1}
+.btn-refresh{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:7px 14px;color:var(--text);font-family:var(--sans);font-size:12px;cursor:pointer}
+
+/* SSAID 卡片 */
+.app-list{display:flex;flex-direction:column;gap:8px}
+.app-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.app-head{display:flex;align-items:center;gap:12px}
+.app-icon{width:54px;height:54px;border-radius:13px;flex-shrink:0;background:var(--surf);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:11px;color:var(--muted)}
+.app-icon img{width:100%;height:100%;object-fit:cover;display:block}
+.app-info{flex:1;min-width:0}
+.app-label{font-size:15px;font-weight:600;color:var(--text);margin-bottom:3px}
+.app-pkg{font-size:11px;color:var(--muted);font-family:var(--mono);word-break:break-all;line-height:1.3}
+.app-ver{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:2px}
+.ssaid-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ssaid-tag{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;background:var(--surf);border:1px solid var(--border);border-radius:4px;padding:3px 7px;flex-shrink:0}
+.ssaid-val{font-size:12px;font-family:var(--mono);color:var(--accent);background:rgba(91,138,240,.08);border:1px solid rgba(91,138,240,.18);border-radius:5px;padding:4px 9px;flex:1;min-width:0;word-break:break-all;transition:all .3s}
+.ssaid-val.unassigned{color:var(--muted);background:var(--surf);border-color:var(--border);font-style:italic}
+.ssaid-val.loading-val{color:var(--muted);font-style:italic}
+.ssaid-val.changed{background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.3);color:var(--green)}
+.ssaid-val.fail{background:rgba(248,113,113,.1);border-color:rgba(248,113,113,.3);color:var(--red)}
+.btn-group{display:flex;gap:6px;flex-shrink:0}
+.btn{border:1px solid var(--border);border-radius:6px;background:none;color:var(--muted);font-family:var(--mono);font-size:11px;padding:4px 12px;cursor:pointer;white-space:nowrap}
+.btn.busy{opacity:.45;pointer-events:none}
+
+/* 机型伪装 */
+.spoof-status{background:linear-gradient(135deg,rgba(91,138,240,.12),rgba(167,139,250,.06));border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;text-align:center}
+.spoof-status.active{border-color:rgba(52,211,153,.4);background:linear-gradient(135deg,rgba(52,211,153,.1),rgba(52,211,153,.03))}
+.spoof-status-tag{font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.spoof-status.active .spoof-status-tag{color:var(--green)}
+.spoof-status-name{font-size:18px;font-weight:700;letter-spacing:1px;margin-bottom:4px}
+.spoof-status-detail{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.spoof-cat-title{font-size:11px;letter-spacing:2px;color:var(--accent2);text-transform:uppercase;margin:18px 0 8px}
+.spoof-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:420px){.spoof-list{grid-template-columns:1fr}}
+.spoof-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:all .15s}
+.spoof-item:active{transform:scale(.97)}
+.spoof-item.current{border-color:var(--accent);background:rgba(91,138,240,.06)}
+.spoof-item.restore{border-color:var(--orange);background:rgba(251,146,60,.05)}
+.spoof-item-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}
+.spoof-item-id{font-size:10px;color:var(--muted);font-family:var(--mono)}
+
+/* 缓存清理 */
+.clean-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px}
+.clean-title{font-size:14px;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.clean-desc{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px}
+.clean-actions{display:flex;gap:8px;flex-wrap:wrap}
+.clean-btn{flex:1;min-width:100px;padding:11px;border-radius:10px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:none;letter-spacing:.5px;transition:opacity .2s}
+.clean-btn.deep{background:linear-gradient(135deg,var(--red),var(--orange));color:#fff}
+.clean-btn.light{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}
+.clean-btn:active{opacity:.85}
+.clean-btn.busy{opacity:.5;pointer-events:none}
+
+/* 设置开关 */
+.toggle-row{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.toggle-info{flex:1;min-width:0}
+.toggle-label{font-size:13px;font-weight:500;margin-bottom:3px}
+.toggle-desc{font-size:11px;color:var(--muted);line-height:1.5}
+.toggle-switch{position:relative;width:44px;height:24px;background:var(--border);border-radius:12px;flex-shrink:0;cursor:pointer;transition:background .2s}
+.toggle-switch.on{background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.toggle-switch::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.toggle-switch.on::after{transform:translateX(20px)}
+
+/* 关于我们 */
+.about-hero{background:linear-gradient(135deg,rgba(91,138,240,.1),rgba(167,139,250,.06));border:1px solid var(--border);border-radius:14px;padding:24px 18px;text-align:center;margin-bottom:14px}
+.about-logo{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--accent),var(--accent2));margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:#fff;letter-spacing:1px}
+.about-name{font-size:18px;font-weight:700;letter-spacing:2px;margin-bottom:4px}
+.about-ver{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.about-block{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px}
+.about-title{font-size:11px;letter-spacing:3px;color:var(--accent2);text-transform:uppercase;margin-bottom:10px}
+.about-text{font-size:13px;line-height:1.85;color:var(--text)}
+.about-info-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.about-info-row:last-child{border-bottom:none}
+.about-info-row .k{color:var(--muted);font-size:12px}
+.about-info-row .v{color:var(--text);font-family:var(--mono);font-size:12px}
+.about-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:10px;padding:12px;color:#fff;font-family:var(--sans);font-size:14px;font-weight:600;cursor:pointer;letter-spacing:1px;transition:opacity .2s}
+.about-btn:active{opacity:.85}
+.about-disclaimer{font-size:12px;color:var(--muted);line-height:1.85}
+.about-disclaimer em{color:var(--orange);font-style:normal;font-weight:600}
+.about-disclaimer p{margin-bottom:8px}
+.about-disclaimer p:last-child{margin-bottom:0}
+
+/* 公告弹窗 */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:9000;display:none;align-items:center;justify-content:center;padding:20px;animation:fadeIn .25s}
+.modal-mask.show{display:flex}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal{background:linear-gradient(180deg,var(--card),var(--surf));border:1px solid var(--border);border-radius:16px;max-width:480px;width:100%;max-height:80vh;display:flex;flex-direction:column;overflow:hidden;animation:slideUp .3s;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.modal-header{padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:linear-gradient(90deg,rgba(91,138,240,.08),transparent)}
+.modal-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;color:#fff;font-weight:700;letter-spacing:.5px}
+.modal-title{font-size:16px;font-weight:700;letter-spacing:1px}
+.modal-sub{font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:2px;letter-spacing:1px;text-transform:uppercase}
+.modal-body{padding:20px;overflow-y:auto;flex:1;font-size:13px;line-height:1.85;color:var(--text);white-space:pre-wrap;word-break:break-word;font-family:var(--sans)}
+.modal-body.loading{padding:40px 20px;text-align:center;color:var(--muted);white-space:normal}
+.modal-footer{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px}
+.modal-btn{flex:1;padding:11px;border-radius:8px;font-family:var(--sans);font-size:13px;cursor:pointer;letter-spacing:1px;transition:all .15s;border:1px solid var(--border);background:var(--surf);color:var(--text)}
+.modal-btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;color:#fff;font-weight:600}
+.modal-btn:active{opacity:.85}
+
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border:1px solid var(--border);border-radius:20px;padding:8px 18px;font-size:12px;font-family:var(--mono);color:var(--text);opacity:0;transition:all .25s;pointer-events:none;white-space:nowrap;z-index:9999;max-width:90%;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{text-align:center;padding:28px 16px 10px;font-size:11px;color:var(--muted);font-family:var(--mono)}
+footer em{color:var(--accent2);font-style:normal}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-icon">CT</div>
+  <div>
+    <div class="topbar-title">墨匣 InkVault</div>
+    <div class="topbar-sub">APatch Module · aplm</div>
+  </div>
+</div>
+
+<div class="tabbar">
+  <button class="tab on" onclick="switchTab('sys',this)">系统信息</button>
+  <button class="tab" onclick="switchTab('apps',this)">SSAID 管理</button>
+  <button class="tab" onclick="switchTab('spoof',this)">机型伪装</button>
+  <button class="tab" onclick="switchTab('clean',this)">缓存清理</button>
+  <button class="tab" onclick="switchTab('toolbox',this)">工具箱</button>
+  <button class="tab" onclick="switchTab('device',this)">伪装/对抗</button>
+  <button class="tab" onclick="switchTab('about',this)">关于我们</button>
+</div>
+
+<div class="page">
+
+  <!-- 系统信息 -->
+  <div class="panel on" id="panel-sys">
+    <div class="loader" id="sys-loader"><div class="spin"></div>读取系统信息中…</div>
+    <div id="sys-body" style="display:none"></div>
+  </div>
+
+  <!-- SSAID 管理 -->
+  <div class="panel" id="panel-apps">
+    <div class="loader" id="app-loader"><div class="spin"></div>扫描已安装游戏中…</div>
+    <div id="app-body" style="display:none">
+      <div class="toolbar">
+        <span class="count" id="app-count"></span>
+        <button class="btn-refresh" onclick="loadApps()">刷新</button>
+      </div>
+      <div class="app-list" id="app-list"></div>
+    </div>
+  </div>
+
+  <!-- 机型伪装 -->
+  <div class="panel" id="panel-spoof">
+    <div class="loader" id="spoof-loader"><div class="spin"></div>读取预设中…</div>
+    <div id="spoof-body" style="display:none"></div>
+  </div>
+
+  <!-- 缓存清理 -->
+  <div class="panel" id="panel-clean">
+    <div class="clean-card">
+      <div class="clean-title">无畏契约 · 深度清理</div>
+      <div class="clean-desc">封号清理 + 自动改 SSAID + 保留版本凭据，避免重新下载完整包。建议在游戏关闭时执行。</div>
+      <div class="clean-actions">
+        <button class="clean-btn deep" id="btn-deep" onclick="runClean('deep')">深度清理</button>
+        <button class="clean-btn light" id="btn-light" onclick="runClean('light')">轻度清理</button>
+      </div>
+    </div>
+
+    <div class="section">自动清理设置</div>
+    <div id="settings-body">
+      <div class="loader"><div class="spin"></div>读取设置中…</div>
+    </div>
+  </div>
+
+
+  <!-- 伪装 / 检测对抗 -->
+  <div class="panel" id="panel-device">
+    <div class="section">设备标识</div>
+    <div id="dv-ids"><div class="loader"><div class="spin"></div>读取中…</div></div>
+    <div class="toolbar">
+      <button class="clean-btn deep" onclick="dvResetMac()">换 MAC</button>
+      <button class="clean-btn deep" onclick="dvResetSn()">换 Serialno</button>
+      <button class="clean-btn light" onclick="dvSnFull()">同步 SN 全属性</button>
+      <button class="btn-refresh" onclick="ivClearCache();dvLoad();dvLoadAuto()">刷新</button>
+    </div>
+
+    <div class="section">环境伪装</div>
+    <div id="dv-env"><div class="loader"><div class="spin"></div>检测中…</div></div>
+    <div class="toolbar">
+      <button class="clean-btn light" onclick="dvHideEnv()">应用 BL 伪装</button>
+      <button class="clean-btn light" onclick="dvSepolicy()">SELinux 硬化</button>
+      <button class="btn-refresh" onclick="ivClearCache();dvLoad()">重新检测</button>
+    </div>
+
+    <div class="section">自动化</div>
+    <div id="dv-auto"><div class="loader"><div class="spin"></div>读取设置…</div></div>
+
+    <div class="section">对抗模块状态</div>
+    <div id="dv-mods"><div class="loader"><div class="spin"></div>读取中…</div></div>
+  </div>
+
+  <!-- 工具箱（融合 Fish） -->
+  <div class="panel" id="panel-toolbox">
+    <div class="section">游戏缓存清理</div>
+    <div class="toolbar">
+      <button class="clean-btn light" onclick="tbCleanAll('light')">全部轻度清理</button>
+      <button class="clean-btn deep" onclick="tbCleanAll('deep')">全部深度清理</button>
+      <button class="btn-refresh" onclick="ivClearCache();tbLoadGames()">刷新</button>
+    </div>
+    <div id="tb-games"><div class="loader"><div class="spin"></div>读取游戏列表…</div></div>
+
+    <div class="section">设备指纹</div>
+    <div id="tb-fp"><div class="loader"><div class="spin"></div>读取指纹…</div></div>
+    <div class="toolbar">
+      <button class="clean-btn light" onclick="tbFpSpoof()">伪装指纹</button>
+      <button class="clean-btn light" onclick="tbFpRestore()">恢复指纹</button>
+      <button class="btn-refresh" onclick="tbRandomIds()">随机设备ID</button>
+    </div>
+
+    <div class="section">系统清理</div>
+    <div class="toolbar">
+      <button class="clean-btn light" onclick="tbSysJunk()">清理系统垃圾</button>
+      <button class="clean-btn light" onclick="tbSysDriver()">清理驱动/作弊残留</button>
+    </div>
+
+    <div class="section">环境伪装</div>
+    <div id="tb-env"></div>
+    <div class="toolbar">
+      <button class="clean-btn light" onclick="tbHideBl()">隐藏 BL</button>
+      <button class="btn-refresh" onclick="tbCheckEnv()">安全检测</button>
+    </div>
+    <div class="toolbar">
+      <button class="clean-btn deep" onclick="tbHideEnv()">一键隐藏环境</button>
+      <button class="clean-btn light" onclick="tbHideEnvScan()">扫描暴露项</button>
+      <button class="btn-refresh" onclick="tbHideEnvRestore()">恢复挂载</button>
+    </div>
+    <div id="tb-hideenv"></div>
+
+    <div class="section">SELinux 策略硬化</div>
+    <div id="tb-sepolicy"></div>
+    <div class="toolbar">
+      <button class="clean-btn deep" onclick="tbSepolicyFix()">清除策略泄漏</button>
+      <button class="clean-btn light" onclick="tbSepolicyScan()">检测</button>
+      <button class="btn-refresh" onclick="tbSepolicyRestore()">恢复原策略</button>
+    </div>
+
+    <div class="section">隔离容器 (Linux chroot)</div>
+    <div id="tb-chroot"></div>
+    <div class="toolbar">
+      <button class="clean-btn light" onclick="tbChrootStatus()">环境检测</button>
+      <button class="btn-refresh" onclick="tbChrootCheck()">泄漏检查</button>
+    </div>
+
+    <div class="section">chroot 程序垫片（不改源码）</div>
+    <div id="tb-wrap"></div>
+    <div class="toolbar">
+      <button class="clean-btn deep" onclick="tbWrapInstall()">套上隔离垫片</button>
+      <button class="clean-btn light" onclick="tbWrapList()">查看已套</button>
+    </div>
+    <div class="toolbar">
+      <button class="btn-refresh" onclick="tbWrapUninstall()">移除垫片</button>
+    </div>
+  </div>
+
+  <!-- 关于我们 -->
+  <div class="panel" id="panel-about">
+    <div class="about-hero">
+      <div class="about-logo">墨</div>
+      <div class="about-name">墨匣 InkVault</div>
+      <div class="about-ver" id="about-ver">APatch WebUI Module · 读取版本中…</div>
+    </div>
+
+    <div class="about-block">
+      <div class="about-title">作者信息</div>
+      <div class="about-info-row"><span class="k">作者</span><span class="v">aplm</span></div>
+      <div class="about-info-row"><span class="k">来源</span><span class="v">github.com/ce11kjw/InkVault</span></div>
+    </div>
+
+    <div class="about-block">
+      <div class="about-title">版本更新</div>
+      <div class="about-info-row"><span class="k">当前版本</span><span class="v" id="upd-cur">读取中…</span></div>
+      <div class="about-info-row"><span class="k">最新版本</span><span class="v" id="upd-latest">未检查</span></div>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="clean-btn light" onclick="checkUpdate()">检查更新</button>
+        <button class="btn-refresh" onclick="openReleasePage()">打开 Release 页</button>
+      </div>
+      <div id="upd-note" class="about-disclaimer" style="margin-top:10px;font-size:11px"></div>
+    </div>
+
+    <div class="about-block">
+      <div class="about-title">免责声明</div>
+      <div class="about-disclaimer">
+        <p>1. 本模块为<em>免费开源工具</em>，代码托管于 GitHub，仅供学习与技术研究使用，<em>禁止任何形式的商业转售</em>。</p>
+        <p>2. 本模块会修改<em>系统属性、SELinux 策略、网络设备地址</em>并清理应用缓存目录。这些操作具有不可逆性，请在明确了解后果后使用。</p>
+        <p>3. 部分功能（设备标识、环境伪装）会影响应用对设备的识别结果。<em>由此导致的账号异常、封禁、数据丢失等后果，由使用者自行承担。</em></p>
+        <p>4. 请勿将本模块用于<em>违反当地法律法规</em>或侵犯他人权益的场景。开发者不对使用者的具体用途负责。</p>
+        <p>5. 本模块<em>不含任何统计、埋点或数据上传</em>。所有操作均在设备本地完成；联网行为仅限于访问 GitHub 检查更新与拉取源码。</p>
+        <p>6. 本模块基于 CITADEL（呆呆）、Fish 工具箱、ALING 等公开方案整合改造，感谢原作者的开源贡献。</p>
+        <p>7. 如不同意以上条款，请立即停止使用并卸载本模块。</p>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<footer>墨匣 InkVault · by aplm</footer>
+
+
+<div id="toast"></div>
+
+<script>
+/* ===== 通用加载缓存（减少切页时的重复 execRoot 调用）===== */
+var _ivCache={};
+var IV_CACHE_TTL=30000;   // 30 秒
+
+// 带缓存执行：命中缓存直接返回，过期才真正跑脚本
+async function execCached(key, cmd, ttl){
+  ttl = ttl || IV_CACHE_TTL;
+  var c=_ivCache[key];
+  var now=Date.now();
+  if(c && (now-c.t) < ttl) return c.v;
+  var v=await execRoot(cmd);
+  _ivCache[key]={t:now, v:v};
+  return v;
+}
+// 清缓存（用户点「刷新」时调用）
+function ivClearCache(key){
+  if(key) delete _ivCache[key];
+  else _ivCache={};
+}
+
+let allApps=[];
+let spoofPresets=[];
+let currentSpoof=null;
+let userSettings={};
+const MOD_DIR='/data/adb/modules/mituner';
+
+function toast(msg,dur){dur=dur||2500;const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');clearTimeout(el._t);el._t=setTimeout(function(){el.classList.remove('show')},dur)}
+function switchTab(name,btn){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('on')});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on')});
+  btn.classList.add('on');
+  document.getElementById('panel-'+name).classList.add('on');
+  if(name==='apps'&&allApps.length===0)loadApps();
+  if(name==='spoof'&&spoofPresets.length===0)loadSpoof();
+  if(name==='clean')loadSettings();
+  if(name==='toolbox'){tbLoadGames();tbLoadFp();tbSepolicyScan();tbChrootStatus();tbWrapList();}  // 各函数内部已并发，互不阻塞
+  if(name==='device'){dvLoad();dvLoadAuto();}
+  if(name==='about'){loadAboutVer();loadCurVersion();}
+  window.scrollTo(0,0);
+}
+function safeParse(txt,fb){try{return JSON.parse(String(txt).trim())}catch(e){return fb||null}}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+function escA(s){return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/"/g,'&quot;')}
+
+async function execRoot(cmd){
+  if(typeof ksu!=='undefined'&&ksu.exec){
+    return new Promise(function(resolve,reject){
+      try{
+        const result=ksu.exec(cmd);
+        if(result&&typeof result.then==='function'){
+          result.then(function(r){resolve(typeof r==='string'?r:(r.stdout||''))},reject);
+        }else if(typeof result==='string'){
+          resolve(result);
+        }else if(result&&result.stdout!==undefined){
+          resolve(result.stdout);
+        }else{
+          resolve(String(result||''));
+        }
+      }catch(e){reject(e)}
+    });
+  }
+  if(typeof $APATCH!=='undefined'&&$APATCH.exec){
+    return new Promise(function(resolve,reject){
+      try{resolve($APATCH.exec(cmd))}catch(e){reject(e)}
+    });
+  }
+  if(typeof ksu!=='undefined'&&ksu.spawn){
+    return new Promise(function(resolve,reject){
+      let out='';
+      const child=ksu.spawn('sh',['-c',cmd]);
+      child.stdout.on('data',function(d){out+=d});
+      child.on('exit',function(){resolve(out)});
+      child.on('error',reject);
+    });
+  }
+  throw new Error('未检测到 KernelSU/Suki/APatch WebUI 环境');
+}
+
+
+/* ========= 系统信息 ========= */
+async function loadSys(){
+  try{
+    const out=await execCached('sysinfo','sh '+MOD_DIR+'/scripts/sysinfo.sh');
+    const json=out.trim();
+    if(!json)throw new Error('脚本无输出');
+    const d=safeParse(json);if(!d)throw new Error('返回数据解析失败');
+    renderSys(d);
+  }catch(e){
+    document.getElementById('sys-loader').innerHTML='<span class="err-msg">读取失败<br>'+esc(e.message||e)+'</span>';
+  }
+}
+
+function renderSys(d){
+  const bat=parseInt(d.battery)||0;
+  const batClr=bat>50?'var(--green)':bat>20?'var(--orange)':'var(--red)';
+  const uptH=Math.floor((d.uptime||0)/3600);
+  const uptM=Math.floor(((d.uptime||0)%3600)/60);
+  const ramG=((d.ram_mb||0)/1024).toFixed(1);
+  document.getElementById('sys-body').innerHTML=
+    '<div class="section">设备基本信息</div><div class="grid">'+
+    '<div class="cell"><div class="cell-label">设备型号</div><div class="cell-val hi">'+esc(d.device||'—')+'</div></div>'+
+    '<div class="cell"><div class="cell-label">品牌 / 厂商</div><div class="cell-val">'+esc(d.brand||'—')+' · '+esc(d.manufacturer||'—')+'</div></div>'+
+    '<div class="cell"><div class="cell-label">Android 版本</div><div class="cell-val ok">Android '+esc(d.android||'—')+' (SDK '+esc(d.sdk||'—')+')</div></div>'+
+    '<div class="cell"><div class="cell-label">内核版本</div><div class="cell-val">'+esc(d.kernel||'—')+'</div></div>'+
+    '<div class="cell"><div class="cell-label">CPU 架构</div><div class="cell-val">'+esc(d.cpu_abi||'—')+'</div></div>'+
+    '<div class="cell"><div class="cell-label">硬件 / 主板</div><div class="cell-val">'+esc(d.hardware||'—')+' · '+esc(d.board||'—')+'</div></div>'+
+    '</div><div class="section">构建信息</div><div class="grid">'+
+    '<div class="cell"><div class="cell-label">Build ID</div><div class="cell-val hi">'+esc(d.build_id||'—')+'</div></div>'+
+    '<div class="cell"><div class="cell-label">安全补丁</div><div class="cell-val">'+esc(d.security_patch||'—')+'</div></div>'+
+    '<div class="cell"><div class="cell-label">构建日期</div><div class="cell-val">'+esc(d.build_date||'—')+'</div></div>'+
+    '<div class="cell"><div class="cell-label">Bootloader</div><div class="cell-val">'+esc(d.bootloader||'—')+'</div></div>'+
+    '<div class="cell wide"><div class="cell-label">设备指纹</div><div class="cell-val" style="font-size:11px">'+esc(d.fingerprint||'—')+'</div></div>'+
+    '</div><div class="section">运行状态</div><div class="grid">'+
+    '<div class="cell"><div class="cell-label">电量</div><div class="cell-val" style="color:'+batClr+'">'+bat+'%</div><div class="bat-bar"><div class="bat-fill" style="width:'+bat+'%;background:'+batClr+'"></div></div></div>'+
+    '<div class="cell"><div class="cell-label">运行时长</div><div class="cell-val ok">'+uptH+'h '+uptM+'m</div></div>'+
+    '<div class="cell"><div class="cell-label">总运行内存</div><div class="cell-val">'+ramG+' GB</div></div>'+
+    '<div class="cell"><div class="cell-label">屏幕 / DPI</div><div class="cell-val">'+esc(d.screen||'—')+' · '+esc(d.density||'—')+' dpi</div></div>'+
+    '<div class="cell"><div class="cell-label">SELinux</div><div class="cell-val '+(d.selinux==='Enforcing'?'warn':'ok')+'">'+esc(d.selinux||'—')+'</div></div>'+
+    '<div class="cell"><div class="cell-label">Root 版本</div><div class="cell-val hi">'+esc(d.magisk||'—')+'</div></div>'+
+    '<div class="cell"><div class="cell-label">时区</div><div class="cell-val">'+esc(d.timezone||'—')+'</div></div>'+
+    '<div class="cell"><div class="cell-label">语言</div><div class="cell-val">'+esc(d.lang||'—')+'</div></div>'+
+    '</div>';
+  document.getElementById('sys-loader').style.display='none';
+  document.getElementById('sys-body').style.display='block';
+}
+
+/* ========= SSAID ========= */
+async function loadApps(){
+  document.getElementById('app-loader').style.display='flex';
+  document.getElementById('app-loader').innerHTML='<div class="spin"></div>扫描已安装游戏中…';
+  document.getElementById('app-body').style.display='none';
+  allApps=[];
+  try{
+    const out=await execCached('ssaid','sh '+MOD_DIR+'/scripts/ssaid.sh list');
+    const json=out.trim();
+    if(!json)throw new Error('脚本无输出');
+    const d=safeParse(json);if(!d)throw new Error('返回数据解析失败');
+    if(!d.apps)throw new Error('返回数据异常');
+    allApps=d.apps;
+  }catch(e){
+    document.getElementById('app-loader').innerHTML='<span class="err-msg">读取失败<br>'+esc(e.message||e)+'</span>';
+    return;
+  }
+  renderApps(allApps);
+  document.getElementById('app-loader').style.display='none';
+  document.getElementById('app-body').style.display='block';
+}
+
+function renderApps(list){
+  document.getElementById('app-count').textContent='已检测到 '+list.length+' 款应用';
+  const c=document.getElementById('app-list');
+  if(!list.length){
+    c.innerHTML='<div class="empty-msg">本机未检测到任何<br><em>支持的应用</em></div>';
+    return;
+  }
+  c.innerHTML=list.map(function(app){
+    const sid=app.pkg.replace(/[^a-zA-Z0-9]/g,'_');
+    const ssaidVal=app.ssaid||'未分配';
+    const ssaidCls=(ssaidVal==='未分配')?'ssaid-val unassigned':'ssaid-val';
+    let iconHtml=app.icon&&app.icon.indexOf('data:image')===0
+      ?'<img src="'+app.icon+'" alt="">'
+      :'<span style="font-size:10px">无图标</span>';
+    return '<div class="app-card" id="card-'+sid+'">'+
+      '<div class="app-head">'+
+        '<div class="app-icon">'+iconHtml+'</div>'+
+        '<div class="app-info">'+
+          '<div class="app-label">'+esc(app.label||app.pkg)+'</div>'+
+          '<div class="app-pkg">'+esc(app.pkg)+'</div>'+
+          (app.ver?'<div class="app-ver">v'+esc(app.ver)+'</div>':'')+
+        '</div>'+
+      '</div>'+
+      '<div class="ssaid-row">'+
+        '<span class="ssaid-tag">SSAID</span>'+
+        '<span class="'+ssaidCls+'" id="ssaid-'+sid+'">'+esc(ssaidVal)+'</span>'+
+        '<div class="btn-group">'+
+          '<button class="btn" onclick="copySSAID(\''+sid+'\')">复制</button>'+
+          '<button class="btn" id="rbtn-'+sid+'" onclick="resetSSAID(\''+escA(app.pkg)+'\',\''+sid+'\')">随机重置</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function copySSAID(sid){
+  const el=document.getElementById('ssaid-'+sid);if(!el)return;
+  const val=el.textContent;
+  if(!val||val==='未分配'){toast('该应用暂无 SSAID');return}
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(val).then(function(){toast('已复制：'+val)},function(){fallbackCopy(val)});
+  }else{fallbackCopy(val)}
+}
+function fallbackCopy(val){
+  const t=document.createElement('textarea');t.value=val;document.body.appendChild(t);t.select();
+  try{document.execCommand('copy');toast('已复制：'+val)}catch(e){toast('复制失败')}
+  document.body.removeChild(t);
+}
+
+async function resetSSAID(pkg,sid){
+  // 纵深防御：只允许合法包名字符
+  if(!/^[A-Za-z0-9._]+$/.test(String(pkg))){toast('包名非法，已拦截');return}
+  const btn=document.getElementById('rbtn-'+sid);
+  const span=document.getElementById('ssaid-'+sid);
+  if(!btn||!span)return;
+  btn.classList.add('busy');btn.textContent='重置中…';
+  span.classList.remove('changed','fail','unassigned');span.classList.add('loading-val');span.textContent='生成中…';
+  try{
+    const out=await execRoot('sh '+MOD_DIR+'/scripts/ssaid.sh reset '+pkg);
+    const data=safeParse(out)||{};
+    span.classList.remove('loading-val');
+    if(data.ok){
+      span.textContent=data.new;span.classList.add('changed');
+      setTimeout(function(){span.classList.remove('changed')},2500);
+      toast('SSAID 已更新：'+data.new);
+      const item=allApps.find(function(a){return a.pkg===pkg});if(item)item.ssaid=data.new;
+    }else{
+      span.textContent='重置失败';span.classList.add('fail');
+      setTimeout(function(){span.classList.remove('fail')},2000);
+      toast('失败：'+(data.error||'未知错误'));
+    }
+  }catch(e){
+    span.classList.remove('loading-val');span.classList.add('fail');span.textContent='请求失败';
+    setTimeout(function(){span.classList.remove('fail')},2000);
+    toast(e.message||'调用失败');
+  }
+  btn.classList.remove('busy');btn.textContent='随机重置';
+}
+
+/* ========= 机型伪装 ========= */
+async function loadSpoof(){
+  document.getElementById('spoof-loader').style.display='flex';
+  document.getElementById('spoof-body').style.display='none';
+  try{
+    const presetOut=await execCached('spoof','sh '+MOD_DIR+'/scripts/spoof.sh list', 60000);
+    const curOut=await execRoot('sh '+MOD_DIR+'/scripts/spoof.sh current');
+    const presetData=safeParse(presetOut)||{};
+    const curData=safeParse(curOut)||{};
+    spoofPresets=presetData.presets||[];
+    currentSpoof=curData;
+  }catch(e){
+    document.getElementById('spoof-loader').innerHTML='<span class="err-msg">读取失败<br>'+esc(e.message||e)+'</span>';
+    return;
+  }
+  renderSpoof();
+  document.getElementById('spoof-loader').style.display='none';
+  document.getElementById('spoof-body').style.display='block';
+}
+
+function renderSpoof(){
+  const cur=currentSpoof;
+  let html='';
+  if(cur&&cur.active){
+    html+='<div class="spoof-status active">'+
+      '<div class="spoof-status-tag">伪装中</div>'+
+      '<div class="spoof-status-name">'+esc(cur.label||'')+'</div>'+
+      '<div class="spoof-status-detail">'+esc(cur.brand||'')+' · '+esc(cur.model||'')+'</div>'+
+      '</div>';
+  }else{
+    html+='<div class="spoof-status">'+
+      '<div class="spoof-status-tag">原机型</div>'+
+      '<div class="spoof-status-name">'+esc(cur.brand||'未知')+'</div>'+
+      '<div class="spoof-status-detail">'+esc(cur.model||'')+'</div>'+
+      '</div>';
+  }
+
+  // 按分类分组
+  const groups={};
+  spoofPresets.forEach(function(p){
+    const cat=p.category||'其他';
+    if(!groups[cat])groups[cat]=[];
+    groups[cat].push(p);
+  });
+
+  // "系统"分类（恢复原机型）放最前
+  const orderedCats=['系统'];
+  Object.keys(groups).forEach(function(c){if(c!=='系统')orderedCats.push(c)});
+
+  orderedCats.forEach(function(cat){
+    if(!groups[cat])return;
+    html+='<div class="spoof-cat-title">'+esc(cat)+'</div><div class="spoof-list">';
+    groups[cat].forEach(function(p){
+      const isCurrent=cur&&cur.id===p.id;
+      const cls='spoof-item'+(isCurrent?' current':'')+(p.id==='__restore__'?' restore':'');
+      html+='<div class="'+cls+'" onclick="applySpoof(\''+escA(p.id)+'\')">'+
+        '<div class="spoof-item-name">'+esc(p.label)+'</div>'+
+        (p.model?'<div class="spoof-item-id">'+esc(p.model)+'</div>':'')+
+        '</div>';
+    });
+    html+='</div>';
+  });
+
+  document.getElementById('spoof-body').innerHTML=html;
+}
+
+async function applySpoof(id){
+  if(!/^[a-z0-9_]+$/i.test(String(id))){toast('参数非法，已拦截');return}
+  toast('正在应用…');
+  try{
+    const out=await execRoot('sh '+MOD_DIR+'/scripts/spoof.sh apply '+id);
+    const data=safeParse(out)||{};
+    if(data.ok){
+      toast(data.msg||(data.action==='restore'?'已恢复原机型':'已应用：'+data.label));
+      // 刷新状态
+      setTimeout(loadSpoof,300);
+    }else{
+      toast('失败：'+(data.error||'未知'));
+    }
+  }catch(e){
+    toast('调用失败：'+(e.message||e));
+  }
+}
+
+/* ========= 缓存清理 ========= */
+async function runClean(mode){
+  if(!/^(light|deep)$/.test(String(mode))){toast('参数非法，已拦截');return}
+  const btn=document.getElementById('btn-'+mode);
+  if(!btn)return;
+  btn.classList.add('busy');
+  const oldText=btn.textContent;
+  btn.textContent='清理中…';
+  toast('开始'+(mode==='deep'?'深度':'轻度')+'清理…');
+  try{
+    const out=await execRoot('sh '+MOD_DIR+'/scripts/cleaner.sh '+mode);
+    const data=safeParse(out)||{};
+    if(data.ok){
+      toast(data.msg||'清理完成');
+    }else{
+      toast('失败：'+(data.error||''));
+    }
+  }catch(e){
+    toast('调用失败：'+(e.message||e));
+  }
+  btn.classList.remove('busy');
+  btn.textContent=oldText;
+}
+
+async function loadSettings(){
+  const body=document.getElementById('settings-body');
+  try{
+    const out=await execCached('settings','sh '+MOD_DIR+'/scripts/settings.sh get', 60000);
+    userSettings=safeParse(out);if(!userSettings)throw new Error('解析失败');
+  }catch(e){
+    body.innerHTML='<span class="err-msg">读取设置失败</span>';
+    return;
+  }
+  renderSettings();
+}
+
+function renderSettings(){
+  const s=userSettings;
+  const body=document.getElementById('settings-body');
+  body.innerHTML=
+    toggleRow('auto_clean_on_boot','开机自动清理','开机后自动执行一次清理脚本',s.auto_clean_on_boot)+
+    toggleRow('auto_clean_on_codev_start','无畏契约启动时清理','检测到游戏启动时自动执行清理',s.auto_clean_on_codev_start)+
+    toggleRow('auto_clean_on_codev_stop','无畏契约结束时清理','检测到游戏退出时自动执行清理',s.auto_clean_on_codev_stop)+
+    toggleRow('auto_hide_env','开机自动隐藏环境','开机后自动隐藏 su/frida/xposed 等反作弊检测点',s.auto_hide_env);
+}
+
+function toggleRow(key,label,desc,val){
+  const on=val==1||val==='1'||val===1;
+  return '<div class="toggle-row">'+
+    '<div class="toggle-info">'+
+      '<div class="toggle-label">'+esc(label)+'</div>'+
+      '<div class="toggle-desc">'+esc(desc)+'</div>'+
+    '</div>'+
+    '<div class="toggle-switch'+(on?' on':'')+'" onclick="toggleSetting(\''+key+'\',this)"></div>'+
+  '</div>';
+}
+
+async function toggleSetting(key,el){
+  const newVal=el.classList.contains('on')?0:1;
+  el.classList.toggle('on');
+  try{
+    await execRoot('sh '+MOD_DIR+'/scripts/settings.sh set '+key+' '+newVal);
+    userSettings[key]=newVal;
+    toast('已'+(newVal?'开启':'关闭'));
+  }catch(e){
+    el.classList.toggle('on');
+    toast('保存失败');
+  }
+}
+
+// 启动
+loadSys();
+
+
+/* ========= 工具箱（融合 Fish） ========= */
+function tbEsc(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
+// 只允许安全字符，防 shell 注入
+function tbSafe(v,re){v=String(v==null?'':v);return re.test(v)?v:null}
+var TB_ID=/^[a-z0-9_]+$/i, TB_MODE=/^(light|deep)$/, TB_NUM=/^[0-9]{1,2}$/;
+// 解析脚本最后一行 JSON
+function tbLastJson(out){try{return JSON.parse(String(out).trim().split('\n').pop())||{}}catch(e){return {}}}
+function tbEsc_____unused(x){return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+async function tbLoadGames(){
+  const box=document.getElementById('tb-games');
+  box.innerHTML='<div class="loader"><div class="spin"></div>读取游戏列表…</div>';
+  try{
+    const out=await execCached('games','sh '+MOD_DIR+'/scripts/games.sh list');
+    var arr=[];try{arr=JSON.parse(String(out).trim())}catch(e){}
+    // 只显示已安装的游戏，未安装的直接跳过
+    arr = arr.filter(function(g){ return g.installed });
+    if(!arr.length){box.innerHTML='<div class="empty-msg">没有检测到已安装的游戏</div>';return}
+    let h='';
+    arr.forEach(function(g){
+      h+='<div class="cell wide" style="margin-bottom:8px"><div class="cell-label">'+tbEsc(g.name)+' · '+tbEsc(g.pkg)+'</div>'+
+         '<div class="toolbar" style="margin:8px 0 0">'+
+         '<button class="clean-btn light" onclick="tbClean(\''+g.id+'\',\'light\')">轻度</button>'+
+         '<button class="clean-btn deep" onclick="tbClean(\''+g.id+'\',\'deep\')">深度</button>'+
+         '</div></div>';
+    });
+    box.innerHTML=h;
+  }catch(e){box.innerHTML='<div class="err-msg">'+tbEsc(e.message||e)+'</div>'}
+}
+async function tbClean(id,mode){
+  var sid=tbSafe(id,TB_ID), sm=tbSafe(mode,TB_MODE);
+  if(!sid||!sm){toast('参数非法，已拦截');return}
+  toast('正在'+(sm==='deep'?'深度':'轻度')+'清理…');
+  try{
+    const out=await execRoot('sh '+MOD_DIR+'/scripts/games.sh clean '+sid+' '+sm);
+    var r=tbLastJson(out);
+    if(r.ok){toast(r.game+' 清理完成，释放 '+(r.freed_kb||0)+' KB')}
+    else{toast('清理失败：'+(r.error||'未知'))}
+  }catch(e){toast('执行出错：'+(e.message||e))}
+}
+async function tbCleanAll(mode){
+  var sm=tbSafe(mode,TB_MODE); if(!sm){toast('参数非法');return}
+  toast('正在清理全部已安装游戏…');
+  try{
+    const out=await execRoot('sh '+MOD_DIR+'/scripts/games.sh cleanall '+sm);
+    const lines=out.trim().split('\n').filter(function(x){return x.indexOf('"ok":true')>=0});
+    toast('完成，清理了 '+lines.length+' 个游戏');
+  }catch(e){toast('执行出错：'+(e.message||e))}
+}
+async function tbLoadFp(){
+  const box=document.getElementById('tb-fp');
+  try{
+    const out=await execCached('fp','sh '+MOD_DIR+'/scripts/fp.sh status', 60000);
+    var r=tbLastJson(out);
+    box.innerHTML='<div class="cell wide"><div class="cell-label">当前指纹</div><div class="cell-val">'+tbEsc(r.fingerprint||'—')+'</div></div>'+
+      '<div class="cell wide" style="margin-top:8px"><div class="cell-label">设备序列号</div><div class="cell-val">'+tbEsc(r.serial||'—')+'</div>'+
+      '<div class="cell-val '+(r.has_backup?'ok':'warn')+'" style="margin-top:4px">备份：'+(r.has_backup?'已有':'无')+' · resetprop：'+tbEsc(r.resetprop||'无')+'</div></div>';
+  }catch(e){box.innerHTML='<div class="err-msg">'+tbEsc(e.message||e)+'</div>'}
+}
+async function tbFpSpoof(){
+  var n=prompt('替换的字母数量（推荐 3-6）：','4');if(n===null)return;
+  var sn=tbSafe(n,TB_NUM)||'4';
+  toast('正在伪装指纹…');
+  try{const out=await execRoot('sh '+MOD_DIR+'/scripts/fp.sh spoof '+sn);
+    var r=tbLastJson(out);
+    toast(r.applied?'指纹已伪装成功':'已写入，可能需重启生效');tbLoadFp();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function tbFpRestore(){
+  toast('正在恢复指纹…');
+  try{await execRoot('sh '+MOD_DIR+'/scripts/fp.sh restore');toast('已恢复');tbLoadFp()}
+  catch(e){toast('出错：'+(e.message||e))}
+}
+async function tbRandomIds(){
+  toast('正在随机化设备ID…');
+  try{const out=await execRoot('sh '+MOD_DIR+'/scripts/fp.sh random-ids');
+    var r=tbLastJson(out);
+    toast(r.ok?('已改：'+r.serial):'失败');tbLoadFp();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function tbHideBl(){
+  toast('正在伪装 BL 状态…');
+  try{const out=await execRoot('sh '+MOD_DIR+'/scripts/envhide.sh hide-bl');
+    var r=tbLastJson(out);
+    toast('已应用 '+ (r.applied||0) +' 条，重启后需重跑');
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function tbCheckEnv(){
+  const box=document.getElementById('tb-env');
+  box.innerHTML='<div class="loader"><div class="spin"></div>检测中…</div>';
+  try{const out=await execRoot('sh '+MOD_DIR+'/scripts/envhide.sh check');
+    var r=tbLastJson(out);
+    function row(k,v,ok){return '<div class="cell wide" style="margin-bottom:6px"><div class="cell-label">'+k+'</div><div class="cell-val '+(ok?'ok':'warn')+'">'+tbEsc(v)+'</div></div>'}
+    box.innerHTML=row('Bootloader 状态',r.bootloader,r.bootloader==='green')+
+      row('Flash 锁定',r.flash_locked,r.flash_locked==='1')+
+      row('SELinux',r.selinux,r.selinux==='Enforcing')+
+      row('Root 痕迹',r.root?'存在':'无',!r.root)+
+      row('Frida 痕迹',r.frida?'存在':'无',!r.frida)+
+      row('Xposed 痕迹',r.xposed?'存在':'无',!r.xposed)+
+      row('模拟器特征',r.emulator?'疑似':'无',!r.emulator)+
+      row('检测类应用',(r.risky_apps||0)+' 个',!r.risky_apps);
+  }catch(e){box.innerHTML='<div class="err-msg">'+tbEsc(e.message||e)+'</div>'}
+}
+async function tbSysJunk(){
+  toast('正在清理系统垃圾…');
+  try{var out=await execRoot('sh '+MOD_DIR+'/scripts/sysclean.sh junk');
+    var r=tbLastJson(out); toast(r.ok?'系统垃圾清理完成':'失败');
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function tbSysDriver(){
+  toast('正在清理驱动/作弊残留…');
+  try{var out=await execRoot('sh '+MOD_DIR+'/scripts/sysclean.sh driver');
+    var r=tbLastJson(out); toast(r.ok?('完成，清理 '+(r.removed||0)+' 项'):'失败');
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function tbHideEnvScan(){
+  var box=document.getElementById('tb-hideenv');
+  box.innerHTML='<div class="loader"><div class="spin"></div>扫描中…</div>';
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/hideenv.sh scan');
+    var r=tbLastJson(out);
+    function line(k,v){return v?'<div class="cell wide" style="margin-bottom:6px"><div class="cell-label">'+k+'</div><div class="cell-val warn" style="font-size:11px;word-break:break-all">'+tbEsc(v)+'</div></div>':''}
+    var h='';
+    h+=line('SU 二进制',(r.su||'').trim());
+    h+=line('Frida',(r.frida||'').trim());
+    h+=line('Root 框架目录',(r.rootdir||'').trim());
+    h+=line('Xposed 特征',(r.detect||'').trim());
+    h+=line('可疑进程',(r.procs||'').trim());
+    var pp=r.props||{};
+    h+='<div class="cell wide" style="margin-bottom:6px"><div class="cell-label">属性状态</div><div class="cell-val" style="font-size:11px">BL='+tbEsc(pp.bl||'-')+' · locked='+tbEsc(pp.flash||'-')+' · vbmeta='+tbEsc(pp.vbmeta||'-')+'<br>debuggable='+tbEsc(pp.debuggable||'-')+' · type='+tbEsc(pp.type||'-')+'</div></div>';
+    box.innerHTML=h||'<div class="empty-msg">未发现暴露项</div>';
+  }catch(e){box.innerHTML='<div class="err-msg">'+tbEsc(e.message||e)+'</div>'}
+}
+async function tbHideEnv(){
+  if(!confirm('用 tmpfs 覆盖 su / frida / xposed 等路径，让反作弊扫描不到。\n重启后需重新执行。继续？'))return;
+  toast('正在隐藏环境…');
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/hideenv.sh apply');
+    var r=tbLastJson(out);
+    toast(r.ok?('已隐藏 '+(r.paths_hidden||0)+' 处路径，改 '+(r.props_changed||0)+' 个属性'):'失败');
+    tbHideEnvScan();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function tbHideEnvRestore(){
+  toast('正在恢复挂载…');
+  try{
+    await execRoot('sh '+MOD_DIR+'/scripts/hideenv.sh restore');
+    toast('已恢复');tbHideEnvScan();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function tbSepolicyScan(){
+  var box=document.getElementById('tb-sepolicy');
+  box.innerHTML='<div class="loader"><div class="spin"></div>检测中…</div>';
+  try{
+    var out=await execCached('sepolicy','sh '+MOD_DIR+'/scripts/sepolicy.sh scan', 60000);
+    var r=tbLastJson(out);
+    if(!r.ok){box.innerHTML='<div class="err-msg">'+tbEsc(r.error||'检测失败')+'</div>';return}
+    function row(k,v,bad){return '<div class="cell wide" style="margin-bottom:6px"><div class="cell-label">'+k+'</div><div class="cell-val '+(bad?'warn':'ok')+'" style="font-size:11px">'+tbEsc(v)+'</div></div>'}
+    var h='';
+    h+=row('appdomain → ksu_file', r.ksu_file+' 条规则', r.ksu_file>0);
+    h+=row('appdomain → magisk_file', r.magisk_file+' 条规则', r.magisk_file>0);
+    h+=row('appdomain → lsposed_file', r.lsposed_file+' 条（正常应为 0）', r.lsposed_file>0);
+    h+=row('appdomain → xposed_data', r.xposed_data+' 条（正常应为 0）', r.xposed_data>0);
+    h+=row('总体判定', r.dirty?'存在泄漏，可被反作弊检出':'干净', r.dirty);
+    box.innerHTML=h;
+  }catch(e){box.innerHTML='<div class="err-msg">'+tbEsc(e.message||e)+'</div>'}
+}
+async function tbSepolicyFix(){
+  if(!confirm('删除 appdomain 对 ksu_file / magisk_file 的全部放行规则。\n\n已验证：磁盘上没有文件使用这些标签，对功能零影响。\n重启后需重跑。继续？'))return;
+  toast('正在清除策略泄漏…');
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/sepolicy.sh fix');
+    var r=tbLastJson(out);
+    toast(r.ok?('已清除 '+r.applied+' 条规则，立即生效'):('失败：'+(r.error||'')));
+    tbSepolicyScan();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function tbSepolicyRestore(){
+  if(!confirm('恢复原始 SELinux 策略？\n（反作弊将重新能检出 root）'))return;
+  toast('正在恢复…');
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/sepolicy.sh restore');
+    var r=tbLastJson(out);
+    toast(r.ok?'已恢复原始策略':'恢复失败');tbSepolicyScan();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+document.addEventListener('DOMContentLoaded',function(){});
+async function tbChrootStatus(){
+  var box=document.getElementById('tb-chroot');
+  box.innerHTML='<div class="loader"><div class="spin"></div>检测中…</div>';
+  try{
+    var out=await execCached('chroot','sh '+MOD_DIR+'/scripts/chroot.sh status', 60000);
+    var r=tbLastJson(out);
+    if(!r.ok){box.innerHTML='<div class="err-msg">检测失败</div>';return}
+    var ns=r.ns_support||{};
+    function row(k,v,bad){return '<div class="cell wide" style="margin-bottom:6px"><div class="cell-label">'+k+'</div><div class="cell-val '+(bad?'warn':'ok')+'" style="font-size:11px">'+tbEsc(v)+'</div></div>'}
+    var h='';
+    h+=row('挂载命名空间 (MNT_NS)', ns.mnt?'支持':'不支持', !ns.mnt);
+    h+=row('PID 命名空间', ns.pid?'支持':'不支持（不影响隔离）', false);
+    h+=row('User 命名空间', ns.user?'支持':'不支持（不影响隔离）', false);
+    h+=row('make-private 工具', r.make_private?'就绪':'缺失', !r.make_private);
+    h+=row('结论', (r.make_private&&ns.mnt)?'可安全运行隔离容器（挂载不会泄漏）':'环境不满足', !(r.make_private&&ns.mnt));
+    box.innerHTML=h;
+  }catch(e){box.innerHTML='<div class="err-msg">'+tbEsc(e.message||e)+'</div>'}
+}
+async function tbChrootCheck(){
+  var box=document.getElementById('tb-chroot');
+  box.innerHTML='<div class="loader"><div class="spin"></div>检查中…</div>';
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/chroot.sh check');
+    var r=tbLastJson(out);
+    var ok=(r.verdict==='clean');
+    box.innerHTML='<div class="cell wide"><div class="cell-label">挂载泄漏检查</div><div class="cell-val '+(ok?'ok':'warn')+'" style="font-size:12px">'+
+      (ok?'干净：普通应用看不到 chroot 的任何挂载':'发现 '+r.leaked_mounts+' 条可疑挂载（可能泄漏）')+'</div></div>';
+  }catch(e){box.innerHTML='<div class="err-msg">'+tbEsc(e.message||e)+'</div>'}
+}
+async function tbWrapList(){
+  var box=document.getElementById('tb-wrap');
+  box.innerHTML='<div class="loader"><div class="spin"></div>读取中…</div>';
+  try{
+    var out=await execCached('wrap','sh '+MOD_DIR+'/scripts/chroot-wrap.sh list', 60000);
+    var r=tbLastJson(out);
+    var list=(r&&r.wrapped)||[];
+    if(!list.length){box.innerHTML='<div class="empty-msg">还没有给任何程序套垫片</div>';return}
+    var h='';
+    list.forEach(function(x){
+      h+='<div class="cell wide" style="margin-bottom:6px"><div class="cell-label">'+tbEsc(x.target)+'</div>'+
+         '<div class="cell-val '+(x.backup_exists?'ok':'warn')+'" style="font-size:11px;word-break:break-all">'+
+         '原程序: '+tbEsc(x.backup)+(x.backup_exists?'':' (丢失!)')+'</div></div>';
+    });
+    box.innerHTML=h;
+  }catch(e){box.innerHTML='<div class="err-msg">'+tbEsc(e.message||e)+'</div>'}
+}
+async function tbWrapInstall(){
+  var p=prompt('要套隔离垫片的程序完整路径（例如 chroot 启动脚本）：\n\n'
+    +'/data/adb/modules/mubuntu/system/bin/mubuntu','');
+  if(!p)return;
+  p=p.trim();
+  if(!/^\/[A-Za-z0-9._\-\/]+$/.test(p)){toast('路径非法，已拦截');return}
+  if(!confirm('将把\n'+p+'\n改名为备份，并在原位置放一个隔离垫片。\n\n原程序不会被修改，随时可移除。继续？'))return;
+  toast('正在套垫片…');
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/chroot-wrap.sh install '+p);
+    var r=tbLastJson(out);
+    toast(r.ok?('已套上，备份: '+(r.backup||'')):('失败：'+(r.error||'')));
+    tbWrapList();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function tbWrapUninstall(){
+  var p=prompt('要移除垫片的程序路径：','');
+  if(!p)return;
+  p=p.trim();
+  if(!/^\/[A-Za-z0-9._\-\/]+$/.test(p)){toast('路径非法，已拦截');return}
+  if(!confirm('移除垫片并还原原程序？\n'+p))return;
+  toast('正在移除…');
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/chroot-wrap.sh uninstall '+p);
+    var r=tbLastJson(out);
+    toast(r.ok?'已还原':'失败');tbWrapList();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+
+/* ===== 伪装 / 检测对抗 ===== */
+function dvEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function dvLastJson(txt){
+  var t=String(txt||'').trim();
+  var i=t.lastIndexOf('\n{');
+  if(i>=0)t=t.slice(i+1);
+  try{return JSON.parse(t)}catch(e){}
+  var m=t.match(/\{[\s\S]*\}/);
+  if(m){try{return JSON.parse(m[0])}catch(e){}}
+  return null;
+}
+function dvCell(label,val,cls){
+  return '<div class="cell"><div class="cell-label">'+dvEsc(label)+'</div><div class="cell-val '+(cls||'')+'">'+dvEsc(val)+'</div></div>';
+}
+async function dvLoad(){
+  var box=document.getElementById('dv-ids');
+  box.innerHTML='<div class="loader"><div class="spin"></div>读取中…</div>';
+  try{
+    var out=await execCached('dv_status','sh '+MOD_DIR+'/scripts/device.sh status');
+    var r=dvLastJson(out);
+    if(!r||!r.ok){box.innerHTML='<div class="err-msg">'+dvEsc((r&&r.error)||out)+'</div>';return}
+    var h='';
+    h+=dvCell('Serialno',r.serial,r.sn_match?'ok':'');
+    if(r.file_sn&&r.file_sn!==r.serial)h+=dvCell('  └ 模块目标值',r.file_sn,'warn');
+    h+=dvCell('MAC (wlan0)',r.mac,r.mac_match?'ok':'');
+    if(r.file_mac&&r.file_mac!==r.mac){
+      h+=dvCell('  └ 模块目标值',r.file_mac,'warn');
+      h+='<div class="cell wide" style="margin-bottom:6px"><div class="cell-val warn" style="font-size:11px;line-height:1.7">'
+        +'⚠ MAC 未生效：系统已对每个 WiFi 启用「随机 MAC」，会覆盖模块设置的值。<br>'
+        +'如需固定，请到 「设置 → WLAN → 当前网络 → 隐私」 改为「使用设备 MAC」。</div></div>';
+    }
+    h+=dvCell('Android ID',r.android_id,'');
+    h+=dvCell('机型',r.brand+' '+r.model+(r.marketname&&r.marketname!==r.model?' ('+r.marketname+')':''),'');
+    h+=dvCell('代号',r.device,'');
+    h+=dvCell('Fingerprint',r.fingerprint,'');
+    h+=dvCell('ALING_MAC',r.aling_mac==='enabled'?'已启用':'⚠ '+(r.aling_mac||'缺'),r.aling_mac==='enabled'?'ok':'warn');
+    h+=dvCell('ALING_Serialno',r.aling_sn==='enabled'?'已启用':'⚠ '+(r.aling_sn||'缺'),r.aling_sn==='enabled'?'ok':'warn');
+    h+=dvCell('SELinux-LING',r.aling_selinux==='enabled'?'已启用':'⚠ '+(r.aling_selinux||'缺'),r.aling_selinux==='enabled'?'ok':'warn');
+    box.innerHTML=h;
+  }catch(e){box.innerHTML='<div class="err-msg">'+dvEsc(e.message||e)+'</div>'}
+
+  var ebox=document.getElementById('dv-env');
+  ebox.innerHTML='<div class="loader"><div class="spin"></div>检测中…</div>';
+  var mbox=document.getElementById('dv-mods');
+  mbox.innerHTML='<div class="loader"><div class="spin"></div>读取中…</div>';
+  try{
+    var out2=await execCached('dv_check','sh '+MOD_DIR+'/scripts/device.sh check', 60000);
+    var c=dvLastJson(out2);
+    if(!c||!c.ok){ebox.innerHTML='<div class="err-msg">'+dvEsc((c&&c.error)||out2)+'</div>';return}
+    var eh='';
+    eh+=dvCell('SELinux',c.selinux,c.selinux==='Enforcing'?'ok':'warn');
+    eh+=dvCell('Bootloader',c.bootloader+' / locked='+c.flash_locked,'');
+    eh+=dvCell('vbmeta',c.vbmeta,'');
+    eh+=dvCell('su 可见性',c.su==='hidden'?'已隐藏':'⚠ 可见',c.su==='hidden'?'ok':'warn');
+    eh+=dvCell('Frida 残留',c.frida==1?'⚠ 发现':'无',c.frida===1?'warn':'ok');
+    eh+=dvCell('/data/local/tmp',c.tmp_owner+' '+c.tmp_mode+' inode='+c.tmp_inode,'');
+    eh+=dvCell('挂载泄漏',(c.mount_leaks|0)===0?'无':(c.mount_leaks+' 条可疑'),(c.mount_leaks|0)===0?'ok':'warn');
+    eh+=dvCell('ksu_file 放行',c.ksu_file_allow<0?'未知':(c.ksu_file_allow===0?'已清零':(c.ksu_file_allow+' 条规则')),c.ksu_file_allow===0?'ok':(c.ksu_file_allow>0?'warn':''));
+    ebox.innerHTML=eh;
+
+    var mods=c.mods||[], mh='';
+    mods.forEach(function(m){
+      var cls=m.state==='enabled'?'ok':'warn';
+      mh+=dvCell(m.name,m.state==='enabled'?'启用':m.state,cls);
+    });
+    mbox.innerHTML=mh||'<div class="empty-msg">未发现相关模块</div>';
+  }catch(e){ebox.innerHTML='<div class="err-msg">'+dvEsc(e.message||e)+'</div>';mbox.innerHTML=''}
+}
+/* ===== 自动化开关（SELinux 自动修复 / 开机隐藏环境）===== */
+var dvSettings={};
+async function dvLoadAuto(){
+  var box=document.getElementById('dv-auto');
+  if(!box)return;
+  box.innerHTML='<div class="loader"><div class="spin"></div>读取设置…</div>';
+  try{
+    var out=await execCached('settings','sh '+MOD_DIR+'/scripts/settings.sh get', 60000);
+    dvSettings=safeParse(out)||{};
+  }catch(e){
+    box.innerHTML='<div class="err-msg">读取设置失败</div>';
+    return;
+  }
+  dvRenderAuto();
+}
+function dvRenderAuto(){
+  var box=document.getElementById('dv-auto');
+  if(!box)return;
+  var seOn=(dvSettings.auto_sepolicy_fix==='1');
+  var envOn=(dvSettings.auto_hide_env==='1');
+  box.innerHTML=
+    '<div class="toggle-row">'+
+      '<div class="toggle-info">'+
+        '<div class="toggle-label">开机自动修复 SELinux</div>'+
+        '<div class="toggle-desc">每次开机自动清除 appdomain 对 ksu_file / magisk_file 的放行规则（Duck Detector 会读这个判断 root）</div>'+
+      '</div>'+
+      '<div class="toggle-switch'+(seOn?' on':'')+'" onclick="dvToggle(\'auto_sepolicy_fix\',this)"></div>'+
+    '</div>'+
+    '<div class="toggle-row">'+
+      '<div class="toggle-info">'+
+        '<div class="toggle-label">开机自动隐藏环境</div>'+
+        '<div class="toggle-desc">开机后自动隐藏 su / frida / xposed 等反作弊检测点</div>'+
+      '</div>'+
+      '<div class="toggle-switch'+(envOn?' on':'')+'" onclick="dvToggle(\'auto_hide_env\',this)"></div>'+
+    '</div>';
+}
+async function dvToggle(key,el){
+  var cur = key==='auto_sepolicy_fix' ? dvSettings.auto_sepolicy_fix : dvSettings.auto_hide_env;
+  var next = (cur==='1') ? '0' : '1';
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/settings.sh set '+key+' '+next);
+    var r=safeParse(out);
+    if(r&&r.ok){
+      if(key==='auto_sepolicy_fix') dvSettings.auto_sepolicy_fix=next;
+      else dvSettings.auto_hide_env=next;
+      if(next==='1') el.classList.add('on'); else el.classList.remove('on');
+      toast(next==='1'?'已开启':'已关闭');
+      if(key==='auto_sepolicy_fix'&&next==='1'){
+        toast('正在立即执行一次 SELinux 硬化…');
+        setTimeout(function(){dvSepolicy();},600);
+      }
+    }else{
+      toast('设置失败：'+((r&&r.error)||out));
+    }
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function dvResetMac(){
+  if(!confirm('换一个新的随机 MAC？\\n（会调 ALING_MAC 的生成逻辑，重启后保持）'))return;
+  toast('正在生成并应用…');
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/device.sh reset-mac');
+    var r=dvLastJson(out);
+    toast(r&&r.ok?('已换：'+(r.generated||'')):('失败：'+((r&&r.error)||out)));
+    dvLoad();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function dvResetSn(){
+  if(!confirm('换一个新的随机 Serialno？'))return;
+  toast('正在生成并应用…');
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/device.sh reset-sn');
+    var r=dvLastJson(out);
+    toast(r&&r.ok?('已换：'+(r.now||r.generated||'')):('失败：'+((r&&r.error)||out)));
+    dvLoad();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function dvHideEnv(){
+  toast('正在应用 BL 伪装…');
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/device.sh hide-env');
+    toast('已应用（属性层）');
+    dvLoad();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function dvSepolicy(){
+  toast('正在硬化 SELinux 策略…');
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/sepolicy.sh fix');
+    var r=dvLastJson(out);
+    toast(r&&r.ok?'已硬化（立即生效，重启后需重跑）':('失败：'+((r&&r.error)||out)));
+    dvLoad();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+async function dvSnFull(){
+  if(!confirm('把 ALING 文件里的 Serialno 同步到全部 4 个属性？\n\n（ro.serialno / ro.boot.chipecid / ro.boot.serialno / ro.vendor.oem.serialno）\n不会生成新值，只复用已有值。'))return;
+  toast('正在同步…');
+  try{
+    var out=await execRoot('sh '+MOD_DIR+'/scripts/device.sh sn-full');
+    var r=dvLastJson(out);
+    toast(r&&r.ok?('已同步 '+r.applied+' 个属性：'+r.value):('失败：'+((r&&r.error)||out)));
+    dvLoad();
+  }catch(e){toast('出错：'+(e.message||e))}
+}
+/* ===== 关于页：读取真实版本 ===== */
+var aboutVerLoaded=false;
+async function loadAboutVer(){
+  var el=document.getElementById('about-ver');
+  if(!el)return;
+  if(aboutVerLoaded)return;
+  try{
+    var out=await execRoot('cat '+MOD_DIR+'/module.prop');
+    var m=/^version=(.+)$/m.exec(out||'');
+    var c=/^versionCode=(.+)$/m.exec(out||'');
+    var v=m?m[1].trim():'?';
+    var vc=c?c[1].trim():'?';
+    el.textContent='v'+(v.replace(/^v/,''))+'  (code '+vc+')  ·  APatch Module';
+    aboutVerLoaded=true;
+  }catch(e){
+    el.textContent='APatch WebUI Module · 版本读取失败';
+  }
+}
+/* ===== 版本更新检查 ===== */
+var UPDATE_JSON='https://raw.githubusercontent.com/ce11kjw/InkVault/main/update.json';
+var RELEASE_PAGE='https://github.com/ce11kjw/InkVault/releases/latest';
+var curCode=0, curVer='';
+
+async function loadCurVersion(){
+  try{
+    var out=await execRoot('cat '+MOD_DIR+'/module.prop');
+    var m=/^version=(.+)$/m.exec(out||'');
+    var c=/^versionCode=(.+)$/m.exec(out||'');
+    curVer=m?m[1].trim():'?';
+    curCode=c?parseInt(c[1].trim(),10):0;
+    var e1=document.getElementById('upd-cur');
+    if(e1)e1.textContent=curVer+' ('+curCode+')';
+  }catch(e){}
+}
+
+async function checkUpdate(){
+  var e1=document.getElementById('upd-cur');
+  var e2=document.getElementById('upd-latest');
+  var note=document.getElementById('upd-note');
+  if(!e2)return;
+  await loadCurVersion();
+  if(e1)e1.textContent=curVer+' ('+curCode+')';
+  e2.textContent='检查中…';
+  if(note)note.innerHTML='';
+  var txt='';
+  // 优先 fetch（WebView 环境通常可用），失败再走 curl
+  try{
+    var r=await fetch(UPDATE_JSON+'?t='+Date.now(),{cache:'no-store'});
+    if(r.ok)txt=await r.text();
+  }catch(e){}
+  if(!txt){
+    try{ txt=await execRoot('curl -sL --max-time 10 "'+UPDATE_JSON+'" 2>/dev/null'); }catch(e){}
+  }
+  if(!txt||txt.indexOf('versionCode')<0){
+    e2.textContent='检查失败';
+    if(note)note.innerHTML='<span style="color:var(--warning,#f59e0b)">无法访问 GitHub，请检查网络或代理。</span>';
+    return;
+  }
+  var nc=0, nv='?';
+  var mc=/"?versionCode"?\s*:\s*(\d+)/.exec(txt);
+  var mv=/"?version"?\s*:\s*"([^"]+)"/.exec(txt);
+  if(mc)nc=parseInt(mc[1],10);
+  if(mv)nv=mv[1];
+  e2.textContent=nv+' ('+nc+')';
+  if(nc>curCode){
+    e2.className='v ok';
+    if(note)note.innerHTML='<span style="color:var(--accent2,#22d3ee)">发现新版本！当前 '+curCode+' → 最新 '+nc+'。<br>'
+      +'请到模块管理器点「更新」，或访问 Release 页面下载。</span>';
+  }else{
+    e2.className='v ok';
+    if(note)note.innerHTML='<span style="color:var(--accent2,#22d3ee)">已是最新版本 ✅</span>';
+  }
+}
+
+function openReleasePage(){
+  try{
+    execRoot('am start -a android.intent.action.VIEW -d "'+RELEASE_PAGE+'"');
+    toast('正在打开浏览器…');
+  }catch(e){toast('打开失败：'+(e.message||e))}
+}
+</script>
+</body>
+</html>

@@ -1,37 +1,59 @@
 #!/system/bin/sh
-# MiTuner - 运行态守护：三态智能切换（日常 / 游戏 / 息屏）
+# MiTuner - 运行态守护：三态智能切换
 #
-# 设计原则：
-#   1. 绝不降低 CPU 频率上限（那是 CTS 等调度模块的职责，改会打架）
-#   2. 只做「减少浪费」：内存回收、IO 预读、调度响应
-#   3. 按场景差异化：游戏放开、息屏省电、日常平衡
-#   4. 热更新：games.conf 改动 3 秒内自动重载，无需重启
+# 检测策略（混合模式，2026-11-14 用户确认）：
+#   前台是游戏           → 立即 GAME
+#   游戏切到后台但屏幕亮  → 保持 GAME 最多 30 秒
+#   超时 / 屏幕灭         → 退出
 
 MODDIR=${0%/*}
 LOG=/data/local/tmp/mituner.log
+DEBUG_LOG=/data/local/tmp/mituner-debug.log
 BK=/data/adb/mituner
 CFG=$BK/settings.conf
 GAMEFILE=$BK/games.conf
 PIDFILE=/data/local/tmp/mituner.pid
 
 log() { echo "[$(date '+%m-%d %H:%M:%S')] $*" >> "$LOG"; }
+dbg() { echo "[$(date '+%m-%d %H:%M:%S')] $*" >> "$DEBUG_LOG"; }
 w() { [ -e "$1" ] && echo "$2" > "$1" 2>/dev/null; return 0; }
 
 mkdir -p "$BK"
 
-# 防重复启动
-if [ -f "$PIDFILE" ]; then
-  old=$(cat "$PIDFILE" 2>/dev/null)
-  if [ -n "$old" ] && [ "$old" != "$$" ] && [ -d "/proc/$old" ]; then
-    log "已有实例 pid=$old，本实例退出"
+# ★ 强化防重复：扫描 /proc 找所有同名实例，只保留最早的一个
+# ★ 强化防重复：扫描 /proc 找所有同名实例，只保留最早的一个
+lock_self() {
+  local me=$$
+  local first=""
+  for d in /proc/[0-9]*; do
+    local pid=${d#/proc/}
+    [ -d "$d" ] || continue
+    local c=$(tr "\0" " " < $d/cmdline 2>/dev/null)
+    case "$c" in
+      *"sh /data/adb/modules/mituner/service.sh"*)
+        [ -z "$first" ] && first=$pid
+        ;;
+    esac
+  done
+  if [ -n "$first" ] && [ "$first" != "$me" ]; then
+    log "已有更早实例 pid=$first，本实例($me)退出"
     exit 0
   fi
-fi
+  echo "$me" > "$PIDFILE"
+  dbg "lock_self: pidfile 写入 $me"
+}
+lock_self
+  old=$(cat "$PIDFILE" 2>/dev/null)
+  if [ -n "$old" ] && [ "$old" != "$$" ] && [ -d "/proc/$old" ]; then
+    log "已有实例 pid=$old，退出"
+    exit 0
+  fi
 echo $$ > "$PIDFILE"
 
-# ---------- 默认配置 ----------
-AUTO_GAME=1
+# ---------- 配置 ----------
+AUTO_GAME=0
 AUTO_GPU_TH=60
+GAME_EXIT_SEC=30
 IDLE_MIN_C0=220000
 IDLE_MIN_C1=400000
 IDLE_MIN_C2=1200000
@@ -44,56 +66,64 @@ STATE=""
 FB=$BK/fb_flag
 GL=$BK/games.list
 FORCE=$BK/force
+GAME_UNTIL=$BK/game_until
 
-# ---------- 白名单清洗 ----------
+# ---------- 白名单清洗（只取第一段） ----------
 build_game_list() {
-  # ★ 只取每行第一段（丢弃备注），避免 "包名<TAB>备注" 被粘连
   [ -f "$GAMEFILE" ] || { : > "$GL"; return 0; }
-  awk '{
-    if ($0 ~ /^[[:space:]]*#/ || $0 ~ /^[[:space:]]*$/) next
-    pkg = $1
-    gsub(/\t/, "", pkg)
-    if (pkg != "") print pkg
-  }' "$GAMEFILE" > "$GL" 2>/dev/null
+  awk '
+    /^[[:space:]]*#/ { next }
+    /^[[:space:]]*$/ { next }
+    { pkg=$1; gsub(/\t/,"",pkg); if (pkg != "") print pkg }
+  ' "$GAMEFILE" > "$GL" 2>/dev/null
 }
 
 build_game_list
 GAME_COUNT=$(wc -l < "$GL" 2>/dev/null | tr -d ' ')
-log "游戏白名单加载: ${GAME_COUNT:-0} 个"
+log "白名单: ${GAME_COUNT:-0} 个 (退出延迟 ${GAME_EXIT_SEC}s)"
 
 # ---------- 工具 ----------
+# ★ 严格提取包名：格式必须是 xxx.yyy，否则返回空
 get_fg() {
-  timeout 4 dumpsys window 2>/dev/null | grep mCurrentFocus | head -1 | sed 's/.*u0 \([^\/]*\).*/\1/'
+  local raw=$(timeout 4 dumpsys window 2>/dev/null | grep mCurrentFocus | head -1)
+  [ -z "$raw" ] && return
+  local pkg=$(echo "$raw" | sed -n 's/.*u[0-9][0-9]* \([^ \/]*\)\/.*/\1/p')
+  # 严格校验：至少含一个点，只用包名字符
+  case "$pkg" in
+    *.*)
+      echo "$pkg" | grep -qE '^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z0-9_]+)+$' && echo "$pkg"
+      ;;
+  esac
 }
 
 get_screen() {
-  dumpsys power 2>/dev/null | grep -oE "mWakefulness=(Awake|Asleep|Dozing)" | head -1 | sed 's/.*=//'
+  local s=$(dumpsys power 2>/dev/null | grep -oE "mWakefulness=(Awake|Asleep|Dozing)" | head -1 | sed 's/.*=//')
+  echo "$s"
 }
 
 is_game() {
-  pkg="$1"
+  local pkg="$1"
   [ -z "$pkg" ] && return 1
   [ -s "$GL" ] || return 1
-  grep -qFx "$pkg" "$GL"
+  grep -qFx "$pkg" "$GL" 2>/dev/null
 }
 
-gpu_load() {
-  cat /sys/module/ged/parameters/gpu_loading 2>/dev/null | head -1
-}
+gpu_load() { cat /sys/module/ged/parameters/gpu_loading 2>/dev/null | head -1; }
+now() { date +%s; }
 
 is_heavy_auto() {
-  g=$(gpu_load)
+  local g=$(gpu_load)
   [ -z "$g" ] && return 1
   [ "$g" -lt "$AUTO_GPU_TH" ] 2>/dev/null && return 1
-  fg=$(cat "$FB" 2>/dev/null)
+  local fg=$(cat "$FB" 2>/dev/null)
   case "$fg" in
-    *launcher*|*miui.home*|*systemui*|*inputmethod*|*settings*|*.lark*|*tencent.mm*|*NotificationShade*|"")
+    ""|*launcher*|*miui.home*|*systemui*|*inputmethod*|*settings*|*.lark*|*tencent.mm*|*searchbox*|*intentresolver*)
       return 1 ;;
   esac
   return 0
 }
 
-# ---------- 三态策略 ----------
+# ---------- 三态 ----------
 apply_normal() {
   w /proc/sys/vm/swappiness 60
   w /proc/sys/vm/vfs_cache_pressure 80
@@ -148,65 +178,98 @@ apply_idle() {
   w /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq $IDLE_MIN_C2
 }
 
-# ---------- 判定 ----------
+# ---------- 判定（带调试） ----------
 decide() {
-  # WebUI 手动强制（一次性，读完即删）
   if [ -f "$FORCE" ]; then
     local f=$(cat "$FORCE" 2>/dev/null)
     rm -f "$FORCE"
     case "$f" in
-      GAME|NORMAL) echo "$f"; return ;;
+      GAME)   dbg "force -> GAME"; echo GAME;   return ;;
+      NORMAL) dbg "force -> NORMAL"; echo NORMAL; return ;;
+      IDLE)   dbg "force -> IDLE"; echo IDLE;   return ;;
     esac
   fi
 
-  scr=$(get_screen)
-  [ "$scr" != "Awake" ] && { echo "IDLE"; return; }
-
-  fg=$(get_fg)
-  [ -n "$fg" ] && echo "$fg" > "$FB"
-
-  is_game "$fg" && { echo "GAME"; return; }
-
-  if [ "$AUTO_GAME" = "1" ] && is_heavy_auto; then
-    echo "GAME"
+  local scr=$(get_screen)
+  if [ "$scr" != "Awake" ]; then
+    dbg "scr=[$scr] -> IDLE"
+    echo "IDLE"
     return
   fi
 
+  local fg=$(get_fg)
+  [ -n "$fg" ] && echo "$fg" > "$FB"
+
+  if is_game "$fg"; then
+    now > "$GAME_UNTIL" 2>/dev/null
+    dbg "fg=[$fg] 命中白名单 -> GAME（重置 until）"
+    echo GAME
+    return
+  fi
+
+  if [ "$AUTO_GAME" = "1" ] && is_heavy_auto; then
+    now > "$GAME_UNTIL" 2>/dev/null
+    dbg "fg=[$fg] GPU自动识别 -> GAME"
+    echo GAME
+    return
+  fi
+
+  if [ -f "$GAME_UNTIL" ]; then
+    local since=$(cat "$GAME_UNTIL" 2>/dev/null)
+    if [ -n "$since" ]; then
+      local el=$(( $(now) - since ))
+      if [ "$el" -ge 0 ] && [ "$el" -lt "$GAME_EXIT_SEC" ]; then
+        dbg "fg=[$fg] 保持期 ${el}s/${GAME_EXIT_SEC}s -> GAME_HOLD"
+        echo "GAME_HOLD"
+        return
+      fi
+      dbg "fg=[$fg] 保持期已过 ${el}s -> 清除 until，NORMAL"
+      rm -f "$GAME_UNTIL"
+    fi
+  fi
+
+  dbg "fg=[$fg] -> NORMAL"
   echo "NORMAL"
 }
 
 switch_state() {
-  new="$1"
+  local raw="$1"
+  local new="$raw"
+  [ "$raw" = "GAME_HOLD" ] && new="GAME"
+
   case "$new" in
     IDLE)  apply_idle ;;
     GAME)  apply_game ;;
     *)     apply_normal ;;
   esac
+
   echo "$new" > "$BK/state"
-  log "切换 -> $new (前台=$(cat $FB 2>/dev/null))"
+  echo "$raw" > "$BK/state_raw" 2>/dev/null
+
+  if [ "$raw" = "GAME_HOLD" ] && [ -f "$GAME_UNTIL" ]; then
+    local left=$(( GAME_EXIT_SEC - ($(now) - $(cat "$GAME_UNTIL" 2>/dev/null)) ))
+    log "保持 GAME（剩余约 ${left}s）"
+  else
+    log "切换 -> $new"
+  fi
 }
 
 # ---------- 主循环 ----------
 log "=== service.sh 启动 (pid=$$) ==="
-
 i=0
 while [ "$(getprop sys.boot_completed)" != "1" ] && [ $i -lt 180 ]; do
   sleep 2; i=$((i+1))
 done
-log "开机完成，开始调度"
+log "开机完成"
 
 STATE=$(decide)
 switch_state "$STATE"
 
 GHASH=""
 while true; do
-  if [ "$STATE" = "IDLE" ]; then
-    sleep 5      # 息屏也保持 5 秒，确保唤醒秒响应
-  else
-    sleep 3      # 亮屏 3 秒，游戏切换更灵敏 + games.conf 更快生效
-  fi
+  if [ "$STATE" = "IDLE" ]; then sleep 5; else sleep 3; fi
 
-  # ★ 热更新：games.conf 变了立即重建列表
+  # 白名单热重载
   if [ -f "$GAMEFILE" ]; then
     NEWH=$(wc -c < "$GAMEFILE" 2>/dev/null | tr -d ' ')
     if [ "$NEWH" != "$GHASH" ]; then
@@ -214,7 +277,6 @@ while true; do
       build_game_list
       GAME_COUNT=$(wc -l < "$GL" 2>/dev/null | tr -d ' ')
       log "白名单重载: ${GAME_COUNT:-0} 个"
-      # 立即重新判定（可能影响当前档位）
       NEW=$(decide)
       if [ "$NEW" != "$STATE" ]; then
         STATE="$NEW"
@@ -232,8 +294,9 @@ while true; do
     continue
   fi
 
+  # 自动识别的 GAME 需二次确认
   if [ "$NEW" = "GAME" ] && [ "$STATE" != "GAME" ]; then
-    fg=$(cat "$FB" 2>/dev/null)
+    local fg=$(cat "$FB" 2>/dev/null)
     if ! is_game "$fg"; then
       sleep 2
       [ "$(decide)" = "GAME" ] || continue

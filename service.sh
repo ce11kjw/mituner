@@ -5,16 +5,12 @@
 #   1. 绝不降低 CPU 频率上限（那是 CTS 等调度模块的职责，改会打架）
 #   2. 只做「减少浪费」：内存回收、IO 预读、调度响应
 #   3. 按场景差异化：游戏放开、息屏省电、日常平衡
-#
-# 三态：
-#   GAME   前台是游戏（白名单 或 GPU高负载自动识别）
-#   IDLE   屏幕熄灭 -> 降低 CPU 下限、收紧回收
-#   NORMAL 其他 -> 平衡
 
 MODDIR=${0%/*}
 LOG=/data/local/tmp/mituner.log
 BK=/data/adb/mituner
 CFG=$BK/settings.conf
+GAMEFILE=$BK/games.conf
 
 log() { echo "[$(date '+%m-%d %H:%M:%S')] $*" >> "$LOG"; }
 w() { [ -e "$1" ] && echo "$2" > "$1" 2>/dev/null; return 0; }
@@ -22,7 +18,6 @@ w() { [ -e "$1" ] && echo "$2" > "$1" 2>/dev/null; return 0; }
 mkdir -p "$BK"
 
 # ---------- 默认配置 ----------
-GAME_LIST="com.tencent.tmgp.sgame|com.tencent.tmgp.pubgmhd|com.tencent.tmgp.pubgm|com.miHoYo.Yuanshen|com.miHoYo.ys.mi|com.netease.mrzh|com.netease.g78na.gb|com.tencent.ig|com.pubg.newstate|com.tencent.lolm|com.tencent.jkchess|com.tencent.tmgp.cod|com.activision.callofduty.shooter|com.ea.gp.apexlegendsmobilefps|com.dts.freefireth|com.mobile.legends|com.riotgames.league.wildrift|com.mojang.minecraftpe|com.tencent.tmgp.dnf|com.netease.harrypotter|com.tencent.tmgp.speedmobile|com.tencent.qqgame|com.hypergryph.arknights|com.miHoYo.bh3|com.miHoYo.hkrpg|com.papegames.nn4|com.bluepoch.m.reverse1999"
 AUTO_GAME=1
 AUTO_GPU_TH=60
 IDLE_MIN_C0=220000
@@ -35,6 +30,21 @@ GAME_RA=512
 
 STATE=""
 FB=$BK/fb_flag
+GL=$BK/games.list        # 预先清洗好的纯包名列表（一行一个）
+
+# ---------- 清洗白名单到 games.list ----------
+# 优点：避免每次用超长正则，也避免末尾 | 导致的 empty subexpression
+build_game_list() {
+  if [ -f "$GAMEFILE" ]; then
+    sed -e 's/#.*//' -e 's/[[:space:]]//g' -e '/^$/d' "$GAMEFILE" 2>/dev/null > "$GL"
+  else
+    : > "$GL"
+  fi
+}
+
+build_game_list
+GAME_COUNT=$(wc -l < "$GL" 2>/dev/null | tr -d ' ')
+log "游戏白名单加载: ${GAME_COUNT:-0} 个"
 
 # ---------- 工具 ----------
 get_fg() {
@@ -45,11 +55,12 @@ get_screen() {
   dumpsys power 2>/dev/null | grep -oE "mWakefulness=(Awake|Asleep|Dozing)" | head -1 | sed 's/.*=//'
 }
 
+# 精确整行匹配（不用正则，避免特殊字符问题）
 is_game() {
   pkg="$1"
   [ -z "$pkg" ] && return 1
-  echo "$pkg" | grep -qE "^($GAME_LIST)$" && return 0
-  return 1
+  [ -s "$GL" ] || return 1
+  grep -qFx "$pkg" "$GL"
 }
 
 gpu_load() {
@@ -63,7 +74,8 @@ is_heavy_auto() {
   fg=$(cat "$FB" 2>/dev/null)
   case "$fg" in
     *launcher*|*miui.home*|*systemui*|*inputmethod*|*settings*|*.lark*|*tencent.mm*|*NotificationShade*|"")
-      return 1 ;;
+      return 1
+      ;;
   esac
   return 0
 }
@@ -123,7 +135,6 @@ apply_idle() {
 # ---------- 判定 ----------
 decide() {
   scr=$(get_screen)
-  # 屏幕非亮 -> IDLE（最高优先级，省电）
   [ "$scr" != "Awake" ] && { echo "IDLE"; return; }
 
   fg=$(get_fg)
@@ -162,9 +173,7 @@ log "开机完成，开始调度"
 STATE=$(decide)
 switch_state "$STATE"
 
-# ⭐ 关键修复：息屏时不必高频轮询，但唤醒必须秒响应
-#    做法：息屏时用 10 秒轮询（省电），但每轮都检查屏幕状态
-#    一旦屏幕变亮，立刻切回并恢复正常轮询
+GHASH=""
 while true; do
   if [ "$STATE" = "IDLE" ]; then
     sleep 10
@@ -172,16 +181,25 @@ while true; do
     sleep 5
   fi
 
+  # games.conf 变了就重建列表（用户加游戏无需重启）
+  if [ -f "$GAMEFILE" ]; then
+    NEWH=$(wc -c < "$GAMEFILE" 2>/dev/null | tr -d ' ')
+    if [ "$NEWH" != "$GHASH" ]; then
+      GHASH="$NEWH"
+      build_game_list
+      GAME_COUNT=$(wc -l < "$GL" 2>/dev/null | tr -d ' ')
+      log "白名单重载: ${GAME_COUNT:-0} 个"
+    fi
+  fi
+
   NEW=$(decide)
 
-  # 从 IDLE 醒来时立刻生效，不做二次确认（避免延迟）
   if [ "$STATE" = "IDLE" ] && [ "$NEW" != "IDLE" ]; then
     STATE="$NEW"
     switch_state "$STATE"
     continue
   fi
 
-  # 自动识别进游戏需连续 2 次命中，防误判
   if [ "$NEW" = "GAME" ] && [ "$STATE" != "GAME" ]; then
     fg=$(cat "$FB" 2>/dev/null)
     if ! is_game "$fg"; then

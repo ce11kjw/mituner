@@ -1,0 +1,7 @@
+id=mituner
+name=MiTuner 系统调优
+version=v1.0.0
+versionCode=100
+author=aplm123
+description=MTK/小米设备系统调优。不降频、不减性能，只减少浪费：优化内存回收策略、IO 预读、调度响应，并按「前台/游戏/息屏」三态自动切换策略。游戏时放开性能，息屏时省电，日常保持流畅。
+updateJson=https://raw.githubusercontent.com/ce11kjw/mituner/main/update.json

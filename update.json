@@ -1,6 +1,6 @@
 {
-  "version": "v2.0.0",
-  "versionCode": 200,
+  "version": "v3.0.0",
+  "versionCode": 300,
   "zipUrl": "https://github.com/ce11kjw/mituner/releases/latest/download/MiTuner.zip",
   "changelog": "https://raw.githubusercontent.com/ce11kjw/mituner/main/CHANGELOG.md"
 }

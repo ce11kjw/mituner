@@ -1,10 +1,9 @@
 #!/system/bin/sh
-# MiTuner - 模块按钮动作：显示当前状态
+# MiTuner - 模块按钮：显示当前状态
 MODDIR=${0%/*}
 BK=/data/adb/mituner
 
 get_fg() { timeout 4 dumpsys window 2>/dev/null | grep mCurrentFocus | head -1 | sed 's/.*u0 \([^\/]*\).*/\1/'; }
-w() { [ -e "$1" ] && echo "$2" > "$1" 2>/dev/null; return 0; }
 
 S=$(cat $BK/state 2>/dev/null)
 case "$S" in
@@ -13,16 +12,30 @@ case "$S" in
   *)              NAME="日常模式（平衡）" ;;
 esac
 
+FG=$(get_fg)
+GC=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' -e '/^$/d' $BK/games.conf 2>/dev/null | wc -l)
+
 echo "════════ MiTuner 状态 ════════"
 echo "模块版本 : $(grep '^version=' "$MODDIR/module.prop" 2>/dev/null | cut -d= -f2)"
 echo "当前档位 : $NAME"
-echo "前台应用 : $(get_fg)"
+echo "前台应用 : $FG"
 echo "屏幕状态 : $(dumpsys power 2>/dev/null | grep -oE 'mWakefulness=[A-Za-z]+' | head -1 | cut -d= -f2)"
 echo "GPU 负载 : $(cat /sys/module/ged/parameters/gpu_loading 2>/dev/null | head -1)%"
 echo
+echo "── 游戏白名单 ──"
+echo "收录数量 : $GC 款大型/3A 游戏"
+# 当前前台是否在名单
+if [ -n "$FG" ] && grep -qE "^[[:space:]]*${FG}[[:space:]]*(#.*)?$" $BK/games.conf 2>/dev/null; then
+  echo "当前命中 : ✓ $FG 在白名单中"
+else
+  echo "当前命中 : ✗ $FG 不在白名单"
+fi
+echo "名单文件 : $BK/games.conf"
+echo
 echo "── 守护进程 ──"
-if pgrep -f "mituner/service.sh" >/dev/null 2>&1; then
-  echo "状态     : ✓ 运行中 (pid $(pgrep -f 'mituner/service.sh' | head -1))"
+PIDF=/data/local/tmp/mituner.pid
+if [ -f "$PIDF" ] && [ -d "/proc/$(cat $PIDF)" ]; then
+  echo "状态     : ✓ 运行中 (pid $(cat $PIDF))"
 else
   echo "状态     : ✗ 未运行"
 fi
@@ -40,4 +53,4 @@ for i in 0 4 7; do
 done
 echo
 echo "── 最近日志 ──"
-tail -10 /data/local/tmp/mituner.log 2>/dev/null
+tail -8 /data/local/tmp/mituner.log 2>/dev/null

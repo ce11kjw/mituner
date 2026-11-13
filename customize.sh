@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# MiTuner - 安装脚本
+# MiTuner - 安装脚本（支持热更新，装完自动同步并重启服务）
 SKIPUNZIP=0
 
 ui_print " "
@@ -20,7 +20,6 @@ case "$SOC" in
   *)   ui_print "! 非 MTK ($SOC)，通用优化仍有效" ;;
 esac
 
-# 配置目录
 mkdir -p /data/adb/mituner
 
 # 备份原始值
@@ -39,63 +38,92 @@ if [ ! -f /data/adb/mituner/orig.conf ]; then
   ui_print "- 已备份原始参数"
 fi
 
-# 部署游戏白名单（覆盖更新时保留用户的改动）
+# ★ 游戏白名单：只有不存在时才装（保护用户自定义）
 if [ -f "$MODPATH/games.conf" ]; then
-  if [ -f /data/adb/mituner/games.conf ]; then
-    # 已有文件：备份旧的，装新的
-    cp -f /data/adb/mituner/games.conf /data/adb/mituner/games.conf.bak
-    cp -f "$MODPATH/games.conf" /data/adb/mituner/games.conf
-    ui_print "- 已更新游戏白名单（旧版备份为 games.conf.bak）"
-  else
+  if [ ! -f /data/adb/mituner/games.conf ]; then
     cp -f "$MODPATH/games.conf" /data/adb/mituner/games.conf
     ui_print "- 已安装游戏白名单"
+  else
+    ui_print "- 保留已有游戏白名单（不覆盖你的自定义）"
   fi
   N=$(sed -e 's/#.*//' -e 's/[[:space:]]//g' -e '/^$/d' /data/adb/mituner/games.conf 2>/dev/null | wc -l)
-  ui_print "  收录 $N 个大型/3A 游戏"
+  ui_print "  当前收录 $N 款"
 fi
 
-# 默认配置
+# 默认参数
 if [ ! -f /data/adb/mituner/settings.conf ]; then
   cat > /data/adb/mituner/settings.conf <<'EOC'
-# MiTuner 配置（改完重启生效）
-
-# 白名单没命中时的自动识别：1=开 0=关
+# MiTuner 配置
 AUTO_GAME=1
-# 自动识别的 GPU 负载阈值（百分比）
 AUTO_GPU_TH=60
-
-# 息屏时 CPU 下限（微秒）
 IDLE_MIN_C0=220000
 IDLE_MIN_C1=400000
 IDLE_MIN_C2=1200000
-
-# IO 预读大小（KB）
 NORMAL_RA=256
 GAME_RA=512
 IDLE_RA=128
 EOC
-  ui_print "- 已生成默认配置 settings.conf"
 fi
 
 set_perm_recursive $MODPATH 0 0 0755 0644
-set_perm $MODPATH/service.sh 0 0 0755
-set_perm $MODPATH/post-fs-data.sh 0 0 0755
-set_perm $MODPATH/action.sh 0 0 0755
+for f in service.sh post-fs-data.sh action.sh apply.sh hotupdate.sh; do
+  [ -f "$MODPATH/$f" ] && set_perm "$MODPATH/$f" 0 0 0755
+done
+set_perm "$MODPATH/games.conf" 0 0 0644
 set_perm_recursive $MODPATH/webroot 0 0 0755 0644
+
+# ★★ 热更新：立即同步 modules_update -> modules 并重启服务
+ui_print " "
+ui_print "- 正在热应用（无需重启手机）…"
+
+REAL=/data/adb/modules/mituner
+if [ -d "$MODPATH" ] && [ "$MODPATH" != "$REAL" ]; then
+  mkdir -p "$REAL"
+  for f in module.prop post-fs-data.sh service.sh action.sh customize.sh uninstall.sh apply.sh hotupdate.sh games.conf README.md CHANGELOG.md update.json; do
+    [ -f "$MODPATH/$f" ] && cp -f "$MODPATH/$f" "$REAL/$f" 2>/dev/null
+  done
+  if [ -d "$MODPATH/webroot" ]; then
+    mkdir -p "$REAL/webroot"
+    cp -f "$MODPATH/webroot/"* "$REAL/webroot/" 2>/dev/null
+  fi
+  chmod 755 "$REAL"/*.sh 2>/dev/null
+  chmod 644 "$REAL"/*.md "$REAL"/*.json "$REAL/module.prop" "$REAL/games.conf" 2>/dev/null
+  chmod 644 "$REAL"/webroot/* 2>/dev/null
+  rm -f "$REAL/update"
+
+  # 重启守护
+  for pf in /data/local/tmp/mituner.pid /data/local/tmp/mituner-hotupdate.pid; do
+    if [ -f "$pf" ]; then
+      old=$(cat "$pf" 2>/dev/null)
+      [ -n "$old" ] && kill -9 "$old" 2>/dev/null
+      rm -f "$pf"
+    fi
+  done
+
+  # 立即应用优化
+  [ -f "$REAL/apply.sh" ] && sh "$REAL/apply.sh" >/dev/null 2>&1
+
+  # 拉起服务
+  if [ "$(getprop sys.boot_completed)" = "1" ]; then
+    /data/adb/ap/bin/busybox setsid sh "$REAL/hotupdate.sh" >/dev/null 2>&1 &
+    sleep 1
+    /data/adb/ap/bin/busybox setsid sh "$REAL/service.sh" >/dev/null 2>&1 &
+    sleep 2
+    ui_print "  ✓ 已生效，无需重启"
+  else
+    ui_print "  ✓ 已完成同步（首次安装仍需重启）"
+  fi
+fi
 
 ui_print " "
 ui_print "────────────────────────────────"
 ui_print " 安装完成"
 ui_print "────────────────────────────────"
 ui_print " "
-ui_print "重启后自动生效。"
+ui_print "WebUI: 在管理器里点开本模块即可"
+ui_print "  · 游戏白名单可在 WebUI 里增删"
+ui_print "  · 改完立即生效，无需重启"
 ui_print " "
-ui_print "配置目录: /data/adb/mituner/"
-ui_print "  games.conf    - 游戏白名单（可自己加）"
-ui_print "  settings.conf - 调度参数"
-ui_print " "
+ui_print "配置文件: /data/adb/mituner/"
 ui_print "日志: /data/local/tmp/mituner.log"
-ui_print " "
-ui_print "注意：本模块不修改 CPU 频率上限，"
-ui_print "      性能上限由系统原有调度模块决定。"
 ui_print " "

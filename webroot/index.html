@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0e17">
+<title>MiTuner 系统调优</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0a0e17;--card:#111827;--card2:#161f2e;--line:#1e293b;
+  --txt:#e6edf7;--dim:#7b8ca6;--ok:#22d3ee;--warn:#fbbf24;--err:#f43f5e;--lime:#a3e635;--purple:#a78bfa;
+}
+body{background:var(--bg);color:var(--txt);
+  font-family:-apple-system,"PingFang SC","Noto Sans CJK SC",system-ui,sans-serif;
+  padding:16px 14px calc(28px + env(safe-area-inset-bottom));
+  min-height:100vh;font-size:15px;line-height:1.5}
+.wrap{max-width:520px;margin:0 auto}
+header{display:flex;align-items:center;gap:11px;margin-bottom:18px}
+.logo{width:44px;height:44px;border-radius:13px;flex:0 0 44px;
+  background:linear-gradient(135deg,var(--purple),var(--ok));
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+  box-shadow:0 4px 16px rgba(167,139,250,.3)}
+h1{font-size:19px;font-weight:650;letter-spacing:.3px}
+.sub{font-size:12px;color:var(--dim);margin-top:2px;font-weight:400}
+
+/* 状态大卡 */
+.hero{background:linear-gradient(135deg,rgba(167,139,250,.12),rgba(34,211,238,.06));
+  border:1px solid rgba(167,139,250,.26);border-radius:17px;padding:19px 17px;
+  margin-bottom:13px;position:relative;overflow:hidden}
+.hero:before{content:'';position:absolute;top:-40%;right:-16%;width:170px;height:170px;
+  background:radial-gradient(circle,rgba(167,139,250,.18),transparent 68%);border-radius:50%}
+.hero-row{display:flex;align-items:center;gap:14px;position:relative}
+.bigmode{font-size:26px;font-weight:750;line-height:1.1;letter-spacing:-.5px;
+  background:linear-gradient(135deg,var(--purple),var(--ok));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-lbl{font-size:12px;color:var(--dim);margin-top:4px}
+.badge{margin-left:auto;font-size:11px;font-weight:700;padding:6px 12px;
+  border-radius:20px;white-space:nowrap}
+.b-game{background:rgba(244,63,94,.16);color:var(--err);border:1px solid rgba(244,63,94,.36)}
+.b-normal{background:rgba(34,211,238,.16);color:var(--ok);border:1px solid rgba(34,211,238,.36)}
+.b-idle{background:rgba(163,230,53,.16);color:var(--lime);border:1px solid rgba(163,230,53,.36)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:15px;
+  padding:15px 16px;margin-bottom:12px}
+.card-title{font-size:12px;color:var(--dim);font-weight:600;letter-spacing:1.2px;
+  text-transform:uppercase;margin-bottom:12px;display:flex;
+  align-items:center;justify-content:space-between}
+
+.kv{display:flex;justify-content:space-between;align-items:center;padding:8px 0;
+  border-bottom:1px solid rgba(30,41,59,.55);font-size:13.5px}
+.kv:last-child{border-bottom:none}
+.k{color:var(--dim);font-size:12.5px;flex:0 0 auto;margin-right:10px}
+.v{font-family:ui-monospace,Menlo,monospace;font-size:12px;text-align:right;
+  word-break:break-all;max-width:62%;color:var(--txt)}
+.v.g{color:var(--lime)}.v.r{color:var(--err)}.v.y{color:var(--warn)}.v.c{color:var(--ok)}.v.p{color:var(--purple)}
+
+/* 三态说明 */
+.modes{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px}
+.mode-box{background:var(--card2);border:1px solid transparent;border-radius:11px;
+  padding:11px 9px;text-align:center;font-size:11.5px;line-height:1.45;transition:.2s}
+.mode-box b{display:block;font-size:13px;margin-bottom:4px;font-weight:650}
+.mode-box.on{border-color:currentColor;box-shadow:0 0 0 1px currentColor inset}
+.mode-game{color:var(--err)}.mode-normal{color:var(--ok)}.mode-idle{color:var(--lime)}
+
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}
+button{padding:12px;border-radius:11px;border:1px solid var(--line);
+  background:var(--card2);color:var(--txt);font-size:13.5px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:.16s}
+button:active{transform:scale(.97);background:#1b2637}
+button:disabled{opacity:.5}
+button.primary{background:linear-gradient(135deg,rgba(167,139,250,.9),rgba(34,211,238,.82));
+  color:#06121a;border:none}
+button.full{grid-column:1/-1}
+
+.note{font-size:11.5px;color:var(--dim);line-height:1.65;padding:11px 13px;
+  background:rgba(30,41,59,.35);border-radius:10px;
+  border-left:2.5px solid var(--purple);margin-top:11px}
+.note b{color:var(--purple);font-weight:600}
+footer{text-align:center;font-size:11px;color:#3f4d63;margin-top:20px;line-height:1.9}
+.err-tip{background:rgba(244,63,94,.1);border:1px solid rgba(244,63,94,.28);
+  border-radius:11px;padding:12px 14px;font-size:12.5px;color:#fda4b4;
+  line-height:1.65;margin-bottom:12px;display:none}
+.spin{display:inline-block;width:11px;height:11px;border:2px solid var(--dim);
+  border-top-color:var(--purple);border-radius:50%;
+  animation:sp .7s linear infinite;vertical-align:-1px;margin-right:5px}
+@keyframes sp{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">⚙️</div>
+    <div>
+      <h1>MiTuner</h1>
+      <div class="sub" id="model">系统调优 · MTK</div>
+    </div>
+  </header>
+
+  <div class="err-tip" id="errTip"></div>
+
+  <div class="hero">
+    <div class="hero-row">
+      <div>
+        <div class="bigmode" id="modeName">检测中</div>
+        <div class="hero-lbl">当前调度档位</div>
+      </div>
+      <div class="badge b-normal" id="modeBadge">–</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>三态调度</span><span style="font-size:10px;letter-spacing:0">自动切换</span></div>
+    <div class="modes">
+      <div class="mode-box mode-game" id="mGame"><b>游戏</b>放开性能<br>最低延迟</div>
+      <div class="mode-box mode-normal on" id="mNormal"><b>日常</b>平衡策略<br>流畅省电</div>
+      <div class="mode-box mode-idle" id="mIdle"><b>息屏</b>降低下限<br>极致省电</div>
+    </div>
+    <div class="note">
+      切换依据：<b>前台包名</b>（游戏白名单）→ <b>GPU 负载</b>（自动识别）→ <b>屏幕状态</b>（息屏）。
+      每 5 秒检测一次。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>运行状态</span></div>
+    <div class="kv"><span class="k">前台应用</span><span class="v c" id="fg">–</span></div>
+    <div class="kv"><span class="k">屏幕</span><span class="v" id="screen">–</span></div>
+    <div class="kv"><span class="k">GPU 负载</span><span class="v" id="gpu">–</span></div>
+    <div class="kv"><span class="k">守护进程</span><span class="v" id="daemon">–</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>当前参数</span></div>
+    <div class="kv"><span class="k">swappiness</span><span class="v" id="swap">–</span></div>
+    <div class="kv"><span class="k">vfs_cache_pressure</span><span class="v" id="vfs">–</span></div>
+    <div class="kv"><span class="k">read_ahead_kb</span><span class="v" id="ra">–</span></div>
+    <div class="kv"><span class="k">schedutil.rate_limit</span><span class="v" id="rl">–</span></div>
+    <div class="kv"><span class="k">CPU 下限 (c0/c1/c2)</span><span class="v" id="cpumin">–</span></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><span>操作</span></div>
+    <div class="btns">
+      <button class="primary full" id="btnRefresh">↻ 刷新状态</button>
+      <button id="btnNormal">切到日常</button>
+      <button id="btnGame">切到游戏</button>
+    </div>
+    <div class="note" style="margin-top:13px">
+      <b>设计原则</b>：不降低 CPU 频率上限，只减少浪费。
+      频率/性能上限由系统和你原有的调度模块决定，本模块不干预。
+    </div>
+  </div>
+
+  <footer>
+    MiTuner · by aplm123<br>
+    <span id="footInfo">Redmi K60 Ultra / MT6985</span>
+  </footer>
+</div>
+
+<script>
+/* ===== KSU / APatch 模块 WebUI 桥 ===== */
+let cbSeq = 0;
+
+function detectBridge(){
+  const list = [
+    ['window.ksu', () => window.ksu],
+    ['window.KernelSU', () => window.KernelSU],
+    ['window.apatch', () => window.apatch],
+    ['window.magisk', () => window.magisk],
+    ['window.mm', () => window.mm],
+  ];
+  for (const [label, get] of list){
+    let o = null;
+    try { o = get(); } catch(e){ o = null; }
+    if (o && typeof o.exec === 'function') return o;
+  }
+  return null;
+}
+
+function execCmd(cmd, timeoutMs){
+  return new Promise((resolve) => {
+    const b = detectBridge();
+    if (!b){
+      resolve({ errno:127, stdout:'', stderr:'未检测到 Root 管理器桥（ksu.exec）' });
+      return;
+    }
+    const name = 'mt_cb_' + Date.now() + '_' + (cbSeq++);
+    let done = false;
+    const finish = (r) => {
+      if (done) return;
+      done = true;
+      try { delete window[name]; } catch(e){ window[name] = undefined; }
+      resolve(r);
+    };
+    window[name] = (errno, stdout, stderr) => finish({
+      errno: typeof errno === 'number' ? errno : 0,
+      stdout: stdout == null ? '' : String(stdout),
+      stderr: stderr == null ? '' : String(stderr)
+    });
+    try{
+      b.exec(cmd, JSON.stringify({}), name);
+    }catch(err){
+      try{
+        const r = b.exec(cmd, {});
+        if (r && typeof r.then === 'function'){
+          r.then(out => finish({ errno:0, stdout:String(out||''), stderr:'' }))
+           .catch(e2 => finish({ errno:1, stdout:'', stderr:String(e2) }));
+          return;
+        }
+      }catch(e2){
+        finish({ errno:1, stdout:'', stderr:String(e2) });
+        return;
+      }
+      finish({ errno:1, stdout:'', stderr:String(err) });
+    }
+    setTimeout(() => finish({ errno:124, stdout:'', stderr:'命令超时' }), timeoutMs || 15000);
+  });
+}
+
+/* ===== 采集 ===== */
+const STATUS_CMD = `
+S=/data/adb/mituner/state
+FG=$(timeout 4 dumpsys window 2>/dev/null | grep mCurrentFocus | head -1 | sed 's/.*u0 \\([^\\/]*\\).*/\\1/')
+SCR=$(dumpsys power 2>/dev/null | grep -oE "mWakefulness=(Awake|Asleep|Dozing)" | head -1 | sed 's/.*=//')
+GPU=$(cat /sys/module/ged/parameters/gpu_loading 2>/dev/null | head -1)
+ST=$(cat $S 2>/dev/null)
+DAEMON=$(pgrep -f "mituner/service.sh" >/dev/null 2>&1 && echo running || echo stopped)
+SWAP=$(cat /proc/sys/vm/swappiness 2>/dev/null)
+VFS=$(cat /proc/sys/vm/vfs_cache_pressure 2>/dev/null)
+RA=$(cat /sys/block/dm-47/queue/read_ahead_kb 2>/dev/null)
+RL=$(cat /sys/devices/system/cpu/cpufreq/policy7/schedutil/rate_limit_us 2>/dev/null)
+M0=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 2>/dev/null)
+M4=$(cat /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 2>/dev/null)
+M7=$(cat /sys/devices/system/cpu/cpu7/cpufreq/scaling_min_freq 2>/dev/null)
+MODEL=$(getprop ro.product.odm.marketname)
+VER=$(grep '^version=' /data/adb/modules/mituner/module.prop 2>/dev/null | cut -d= -f2)
+printf 'FG=%s\\nSCR=%s\\nGPU=%s\\nSTATE=%s\\nDAEMON=%s\\nSWAP=%s\\nVFS=%s\\nRA=%s\\nRL=%s\\nM0=%s\\nM4=%s\\nM7=%s\\nMODEL=%s\\nVER=%s\\n' \\
+ "$FG" "$SCR" "$GPU" "$ST" "$DAEMON" "$SWAP" "$VFS" "$RA" "$RL" "$M0" "$M4" "$M7" "$MODEL" "$VER"
+`.trim();
+
+function parseKV(out){
+  const o = {};
+  String(out || '').split('\n').forEach(l => {
+    const i = l.indexOf('=');
+    if (i > 0) o[l.slice(0,i).trim()] = l.slice(i+1).trim();
+  });
+  return o;
+}
+
+const $ = id => document.getElementById(id);
+
+const MODE_META = {
+  GAME:      { name:'游戏模式',   badge:'放开性能', cls:'b-game',   box:'mGame' },
+  GAME_AUTO: { name:'游戏模式',   badge:'自动识别', cls:'b-game',   box:'mGame' },
+  NORMAL:    { name:'日常模式',   badge:'平衡流畅', cls:'b-normal', box:'mNormal' },
+  IDLE:      { name:'息屏模式',   badge:'省电优先', cls:'b-idle',   box:'mIdle' },
+};
+
+let busy = false;
+
+async function load(){
+  if (busy) return;
+  busy = true;
+  const btn = $('btnRefresh');
+  btn.textContent = '读取中…';
+
+  const r = await execCmd(STATUS_CMD, 20000);
+  const tip = $('errTip');
+
+  if (r.errno !== 0 && !r.stdout){
+    tip.style.display = 'block';
+    tip.textContent = '读取失败：' + (r.stderr || ('errno ' + r.errno));
+    busy = false; btn.textContent = '↻ 刷新状态';
+    return;
+  }
+
+  const d = parseKV(r.stdout);
+  tip.style.display = 'none';
+
+  // 状态
+  const st = (d.STATE || 'NORMAL').trim();
+  const meta = MODE_META[st] || MODE_META.NORMAL;
+  $('modeName').textContent = meta.name;
+  const badge = $('modeBadge');
+  badge.className = 'badge ' + meta.cls;
+  badge.textContent = meta.badge;
+
+  ['mGame','mNormal','mIdle'].forEach(id => $(id).classList.remove('on'));
+  $(meta.box).classList.add('on');
+
+  // 运行状态
+  $('fg').textContent = d.FG || '(无)';
+  const scrMap = { Awake:'亮屏', Asleep:'熄灭', Dozing:'AOD' };
+  $('screen').textContent = scrMap[d.SCR] || (d.SCR || '–');
+  $('screen').className = 'v ' + (d.SCR === 'Awake' ? 'g' : 'y');
+
+  const g = parseInt(d.GPU, 10);
+  $('gpu').textContent = isNaN(g) ? '–' : g + '%';
+  $('gpu').className = 'v ' + (isNaN(g) ? '' : (g > 60 ? 'r' : (g > 25 ? 'y' : 'g')));
+
+  const dn = (d.DAEMON || '').trim();
+  $('daemon').textContent = dn === 'running' ? '运行中' : '未运行';
+  $('daemon').className = 'v ' + (dn === 'running' ? 'g' : 'r');
+
+  // 参数
+  $('swap').textContent = d.SWAP || '–';
+  $('swap').className = 'v ' + (d.SWAP === '100' ? 'y' : 'g');
+  $('vfs').textContent = d.VFS || '–';
+  $('ra').textContent = (d.RA || '–') + ' KB';
+  $('rl').textContent = (d.RL || '–') + ' us';
+  $('rl').className = 'v ' + (parseInt(d.RL,10) <= 500 ? 'g' : 'y');
+
+  const f = v => Math.round(parseInt(v,10) / 1000) + 'M';
+  $('cpumin').textContent = f(d.M0||0) + ' / ' + f(d.M4||0) + ' / ' + f(d.M7||0);
+
+  if (d.MODEL){
+    $('model').textContent = d.MODEL + ' · 系统调优';
+    $('footInfo').textContent = d.MODEL + ' / MTK';
+  }
+
+  busy = false;
+  btn.textContent = '↻ 刷新状态';
+}
+
+async function forceMode(m){
+  const b = m === 'GAME' ? $('btnGame') : $('btnNormal');
+  b.disabled = true;
+  const old = b.textContent;
+  b.textContent = '切换中…';
+  await execCmd(`echo ${m} > /data/adb/mituner/force 2>/dev/null; echo ok`, 10000);
+  setTimeout(() => { b.disabled = false; b.textContent = old; load(); }, 2500);
+}
+
+$('btnRefresh').onclick = load;
+$('btnNormal').onclick = () => forceMode('NORMAL');
+$('btnGame').onclick = () => forceMode('GAME');
+
+load();
+setInterval(load, 8000);
+</script>
+</body>
+</html>

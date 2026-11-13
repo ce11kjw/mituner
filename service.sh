@@ -24,23 +24,40 @@ mkdir -p "$BK"
 # ★ 强化防重复：扫描 /proc 找所有同名实例，只保留最早的一个
 lock_self() {
   local me=$$
+  # 1. 检查 pidfile 里的进程是否还活着且确实是 service.sh
+  if [ -f "$PIDFILE" ]; then
+    local old=$(cat "$PIDFILE" 2>/dev/null)
+    if [ -n "$old" ] && [ "$old" != "$me" ] && [ -d "/proc/$old" ]; then
+      local oc=$(tr "\0" " " < /proc/$old/cmdline 2>/dev/null)
+      case "$oc" in
+        *mituner/service.sh*)
+          log "已有存活实例 pid=$old，本实例($me)退出"
+          exit 0
+          ;;
+      esac
+    fi
+  fi
+  # 2. 双保险：扫 /proc 找最早的实例
   local first=""
   for d in /proc/[0-9]*; do
-    local pid=${d#/proc/}
+    local p=${d#/proc/}
     [ -d "$d" ] || continue
     local c=$(tr "\0" " " < $d/cmdline 2>/dev/null)
     case "$c" in
-      *"sh /data/adb/modules/mituner/service.sh"*)
-        [ -z "$first" ] && first=$pid
+      *"mituner/service.sh")
+        [ -z "$first" ] && first=$p
         ;;
     esac
   done
   if [ -n "$first" ] && [ "$first" != "$me" ]; then
-    log "已有更早实例 pid=$first，本实例($me)退出"
-    exit 0
+    # 只有当那个进程确实活着才退出
+    if [ -d "/proc/$first" ]; then
+      log "扫描到更早实例 pid=$first，本实例($me)退出"
+      exit 0
+    fi
   fi
   echo "$me" > "$PIDFILE"
-  dbg "lock_self: pidfile 写入 $me"
+  dbg "lock_self: pidfile=$me"
 }
 lock_self
   old=$(cat "$PIDFILE" 2>/dev/null)
@@ -101,6 +118,23 @@ get_screen() {
   echo "$s"
 }
 
+# 读自定义档位参数：格式 swappiness,vfs,read_ahead,rate_limit
+get_prof() {
+  local mode=$1
+  local def=""
+  case "$mode" in
+    GAME)   def="40,60,512,200" ;;
+    NORMAL) def="60,80,256,500" ;;
+    IDLE)   def="80,120,128,2000" ;;
+  esac
+  local f=/data/adb/mituner/profiles.conf
+  if [ -f "$f" ]; then
+    local v=$(grep "^${mode}=" "$f" 2>/dev/null | tail -1 | cut -d= -f2)
+    [ -n "$v" ] && { echo "$v"; return; }
+  fi
+  echo "$def"
+}
+
 is_game() {
   local pkg="$1"
   [ -z "$pkg" ] && return 1
@@ -125,18 +159,23 @@ is_heavy_auto() {
 
 # ---------- 三态 ----------
 apply_normal() {
-  w /proc/sys/vm/swappiness 60
-  w /proc/sys/vm/vfs_cache_pressure 80
+  local p=$(get_prof NORMAL)
+  local s=$(echo $p | cut -d, -f1)
+  local v=$(echo $p | cut -d, -f2)
+  local r=$(echo $p | cut -d, -f3)
+  local l=$(echo $p | cut -d, -f4)
+  w /proc/sys/vm/swappiness $s
+  w /proc/sys/vm/vfs_cache_pressure $v
   w /proc/sys/vm/dirty_ratio 15
   w /proc/sys/vm/dirty_background_ratio 5
   w /proc/sys/vm/page-cluster 0
   for q in /sys/block/*/queue; do
     case "$q" in *loop*|*ram*|*zram*) continue;; esac
-    echo $NORMAL_RA > "$q/read_ahead_kb" 2>/dev/null
+    echo $r > "$q/read_ahead_kb" 2>/dev/null
     echo 1 > "$q/rq_affinity" 2>/dev/null
   done
-  for p in /sys/devices/system/cpu/cpufreq/policy*; do
-    echo 500 > "$p/schedutil/rate_limit_us" 2>/dev/null
+  for p2 in /sys/devices/system/cpu/cpufreq/policy*; do
+    echo $l > "$p2/schedutil/rate_limit_us" 2>/dev/null
   done
   w /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 220000
   w /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 400000
@@ -144,17 +183,26 @@ apply_normal() {
 }
 
 apply_game() {
-  w /proc/sys/vm/swappiness 40
-  w /proc/sys/vm/vfs_cache_pressure 60
+  local p=$(get_prof GAME)
+  local s=$(echo $p | cut -d, -f1)
+  local v=$(echo $p | cut -d, -f2)
+  local r=$(echo $p | cut -d, -f3)
+  local l=$(echo $p | cut -d, -f4)
+  # 散热器模式：更激进
+  if [ -f "$BK/heatsink" ]; then
+    s=$((s - 10)); v=$((v - 10)); r=$((r + 128)); l=$((l > 150 ? 150 : l))
+  fi
+  w /proc/sys/vm/swappiness $s
+  w /proc/sys/vm/vfs_cache_pressure $v
   w /proc/sys/vm/dirty_ratio 10
   w /proc/sys/vm/dirty_background_ratio 3
   for q in /sys/block/*/queue; do
     case "$q" in *loop*|*ram*|*zram*) continue;; esac
-    echo $GAME_RA > "$q/read_ahead_kb" 2>/dev/null
+    echo $r > "$q/read_ahead_kb" 2>/dev/null
     echo 1 > "$q/rq_affinity" 2>/dev/null
   done
-  for p in /sys/devices/system/cpu/cpufreq/policy*; do
-    echo 200 > "$p/schedutil/rate_limit_us" 2>/dev/null
+  for p2 in /sys/devices/system/cpu/cpufreq/policy*; do
+    echo $l > "$p2/schedutil/rate_limit_us" 2>/dev/null
   done
   w /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq 220000
   w /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq 400000
@@ -164,14 +212,19 @@ apply_game() {
 }
 
 apply_idle() {
-  w /proc/sys/vm/swappiness 80
-  w /proc/sys/vm/vfs_cache_pressure 120
+  local p=$(get_prof IDLE)
+  local s=$(echo $p | cut -d, -f1)
+  local v=$(echo $p | cut -d, -f2)
+  local r=$(echo $p | cut -d, -f3)
+  local l=$(echo $p | cut -d, -f4)
+  w /proc/sys/vm/swappiness $s
+  w /proc/sys/vm/vfs_cache_pressure $v
   for q in /sys/block/*/queue; do
     case "$q" in *loop*|*ram*|*zram*) continue;; esac
-    echo $IDLE_RA > "$q/read_ahead_kb" 2>/dev/null
+    echo $r > "$q/read_ahead_kb" 2>/dev/null
   done
-  for p in /sys/devices/system/cpu/cpufreq/policy*; do
-    echo 2000 > "$p/schedutil/rate_limit_us" 2>/dev/null
+  for p2 in /sys/devices/system/cpu/cpufreq/policy*; do
+    echo $l > "$p2/schedutil/rate_limit_us" 2>/dev/null
   done
   w /sys/devices/system/cpu/cpu0/cpufreq/scaling_min_freq $IDLE_MIN_C0
   w /sys/devices/system/cpu/cpu4/cpufreq/scaling_min_freq $IDLE_MIN_C1
@@ -284,6 +337,11 @@ while true; do
         continue
       fi
     fi
+  fi
+
+  # ★ 充电上限自动控制（每轮检查）
+  if [ -f "$BK/charge_cap" ]; then
+    sh $MODDIR/chargectl.sh applycap >/dev/null 2>&1
   fi
 
   NEW=$(decide)

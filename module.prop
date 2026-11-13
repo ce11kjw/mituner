@@ -1,7 +1,7 @@
 id=mituner
 name=MiTuner 系统调优
-version=v3.0.0
-versionCode=300
+version=v4.0.0
+versionCode=400
 author=aplm123
-description=MTK/小米全能调优。三态调度+自定义参数+游戏白名单+GPU+充电+散热器+后台限制+内存管理+刷新率+电池健康+IO调度器+进程管理+自启管理+网络+温控。8个新功能，6个标签页，全部立即生效，支持热更新。
+description=全能模块。融合三大功能：①系统调优（三态调度/GPU/刷新率/内存/IO/网络/温控）②电池管家（battd C守护进程：充电限制/温度保护/曲线/统计/校准）③隐藏清理（设备伪装/环境隐藏/指纹/游戏清理/SELinux/SSAID）。8个标签页，全部热更新。
 updateJson=https://raw.githubusercontent.com/ce11kjw/mituner/main/update.json

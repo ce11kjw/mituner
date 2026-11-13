@@ -612,6 +612,96 @@ footer{text-align:center;font-size:9.5px;color:#3f4d63;margin-top:12px;line-heig
   </div>
 
   <!-- ==================== 日志 ==================== -->
+  <!-- ==================== 电池（ChargeControl 融合）==================== -->
+  <div class="pane" id="pane-battery">
+    <div class="card">
+      <div class="card-hd"><span>电池概览</span><span class="val" id="batBadge">–</span></div>
+      <div class="card-bd">
+        <div class="kv"><span class="k">电量 / 状态</span><span class="v c" id="batCap">–</span></div>
+        <div class="kv"><span class="k">电压 / 电流</span><span class="v" id="batVI">–</span></div>
+        <div class="kv"><span class="k">功率</span><span class="v y" id="batPow">–</span></div>
+        <div class="kv"><span class="k">温度 SoC/电池/IC/机身</span><span class="v" id="batTemps">–</span></div>
+        <div class="kv"><span class="k">健康度 / 循环</span><span class="v g" id="batHealth">–</span></div>
+        <div class="kv"><span class="k">容量 实际/设计</span><span class="v" id="batFull">–</span></div>
+        <div class="kv"><span class="k">剩余寿命</span><span class="v y" id="batLife">–</span></div>
+        <div class="kv"><span class="k">充电上限 / 停充状态</span><span class="v p" id="batLimit">–</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><span>充电控制</span></div>
+      <div class="card-bd">
+        <div class="slider-row">
+          <div class="slider-lbl">充电上限%<small>达到即停充</small></div>
+          <input type="range" id="sbLimit" min="50" max="100" step="5">
+          <div class="slider-val" id="vbLimit">–</div>
+        </div>
+        <div class="slider-row">
+          <div class="slider-lbl">温度保护°C<small>超过即停</small></div>
+          <input type="range" id="sbTemp" min="35" max="60" step="1">
+          <div class="slider-val" id="vbTemp">–</div>
+        </div>
+        <div class="btns g3" style="margin-top:9px">
+          <button class="sm primary" id="btnBatApply">应用</button>
+          <button class="sm" id="btnBatPause">暂停/恢复</button>
+          <button class="sm ok" id="btnBatFull">充满一次</button>
+        </div>
+        <div class="btns" style="margin-top:7px">
+          <button class="sm" id="btnBatCalib">电池校准</button>
+          <button class="sm" id="btnBatExport">导出数据</button>
+        </div>
+        <div class="note">由 <b>battd</b>（C 守护进程）控制，5 秒采样一次。</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><span>完整仪表盘</span><span class="val">battd</span></div>
+      <div class="card-bd" style="padding:0">
+        <iframe id="batFrame" src="http://127.0.0.1:8800/" style="width:100%;height:620px;border:0;border-radius:10px;background:#0a0e17"></iframe>
+        <div class="btns" style="margin-top:9px;padding:0 13px 13px">
+          <button class="sm" id="btnBatReload">↻ 重载仪表盘</button>
+          <button class="sm" id="btnBatOpen">新窗口打开</button>
+        </div>
+        <div class="note" style="margin:0 13px 13px">
+          含功率路径 / 温度分布 / 硬件耗电 / 充电画像 / 会话 / 曲线图 / 事件快照。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 隐藏/清理（InkVault 融合）==================== -->
+  <div class="pane" id="pane-inkvault">
+    <div class="card">
+      <div class="card-hd"><span>快速状态</span><span class="val" id="ivBadge">–</span></div>
+      <div class="card-bd">
+        <div class="kv"><span class="k">序列号</span><span class="v c" id="ivSerial">–</span></div>
+        <div class="kv"><span class="k">MAC</span><span class="v" id="ivMac">–</span></div>
+        <div class="kv"><span class="k">机型 / 市场名</span><span class="v" id="ivModel">–</span></div>
+        <div class="kv"><span class="k">Bootloader</span><span class="v g" id="ivBl">–</span></div>
+        <div class="kv"><span class="k">SELinux</span><span class="v" id="ivSe">–</span></div>
+        <div class="kv"><span class="k">SU / Frida</span><span class="v" id="ivSu">–</span></div>
+        <div class="btns" style="margin-top:9px">
+          <button class="sm" id="btnIvScan">重新检测</button>
+          <button class="sm warn" id="btnIvFix">一键加固</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd"><span>完整控制台</span><span class="val">InkVault</span></div>
+      <div class="card-bd" style="padding:0">
+        <iframe id="ivFrame" src="inkvault/index.html" style="width:100%;height:720px;border:0;border-radius:10px;background:#0a0e17"></iframe>
+        <div class="btns" style="margin-top:9px;padding:0 13px 13px">
+          <button class="sm" id="btnIvReload">↻ 重载控制台</button>
+          <button class="sm" id="btnIvOpen">新窗口打开</button>
+        </div>
+        <div class="note" style="margin:0 13px 13px">
+          含 设备伪装 / 环境隐藏 / 指纹 / 游戏清理 / SELinux 策略 / SSAID / 工具箱。
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="pane" id="pane-logs">
     <div class="card">
       <div class="card-hd"><span>运行日志</span><span class="val" id="logLines">–</span></div>
@@ -652,6 +742,8 @@ footer{text-align:center;font-size:9.5px;color:#3f4d63;margin-top:12px;line-heig
   <div class="nav-item" data-pane="params"><span class="ico">⚙</span>参数</div>
   <div class="nav-item" data-pane="games"><span class="ico">🎮</span>游戏</div>
   <div class="nav-item" data-pane="tune"><span class="ico">⚡</span>调优</div>
+  <div class="nav-item" data-pane="battery"><span class="ico">🔋</span>电池</div>
+  <div class="nav-item" data-pane="inkvault"><span class="ico">🎭</span>隐藏</div>
   <div class="nav-item" data-pane="sys"><span class="ico">🔋</span>系统</div>
   <div class="nav-item" data-pane="logs"><span class="ico">📋</span>日志</div>
 </nav>
@@ -823,6 +915,8 @@ document.querySelectorAll('.nav-item').forEach(function(n){
     var p=$('pane-'+k); if(p)p.classList.add('on');
     if(k==='games')loadList();
     if(k==='tune')loadTune();
+    if(k==='battery')loadBattery();
+    if(k==='inkvault')loadInkvault();
     if(k==='sys')loadSys();
     if(k==='logs')loadLog();
     refreshStatus();
@@ -1386,6 +1480,167 @@ $('btnLogAuto').onclick=function(){
   if(logTimer){clearInterval(logTimer);logTimer=null;this.textContent='自动: 关';this.classList.remove('on');}
   else{logTimer=setInterval(loadLog,3000);this.textContent='自动: 开';this.classList.add('on');}
 };
+
+/* ===== 电池页（battd 融合）===== */
+var BAT_URL = 'http://127.0.0.1:8800';
+
+async function batFetch(path, postData, timeoutMs) {
+  var BB = '/data/adb/ap/bin/busybox';
+  var cmd;
+  if (postData) {
+    cmd = BB + " wget -q -O - --timeout=8 --post-data='" + postData + "' " + BAT_URL + path + ' 2>/dev/null';
+  } else {
+    cmd = BB + ' wget -q -O - --timeout=6 ' + BAT_URL + path + ' 2>/dev/null';
+  }
+  var r = await execCmd(cmd, timeoutMs || 15000);
+  return String(r.stdout || '');
+}
+
+async function loadBattery() {
+  var t = await batFetch('/api/status');
+  if (!t || t.indexOf('{') !== 0) {
+    $('batBadge').textContent = 'battd 未响应';
+    $('batBadge').style.color = 'var(--err)';
+    return;
+  }
+  var d = {};
+  try { d = JSON.parse(t); } catch (e) {
+    $('batBadge').textContent = '解析失败';
+    return;
+  }
+  $('batBadge').textContent = (d.status || '–');
+  $('batBadge').style.color = 'var(--ok)';
+
+  $('batCap').textContent = (d.capacity || '?') + '% · ' + (d.status || '');
+  $('batVI').textContent = Math.round(d.voltage || 0) + ' mV / ' + Math.round(d.current || 0) + ' mA';
+
+  var pw = Number(d.power_mw || 0);
+  $('batPow').textContent = (pw / 1000).toFixed(2) + ' W';
+  $('batPow').className = 'v ' + (pw < 0 ? 'r' : 'g');
+
+  $('batTemps').textContent = (d.soc_temp || '?') + '° / ' + (d.temp || '?') + '° / '
+    + (d.chg_temp || '?') + '° / ' + (d.case_temp || '?') + '°';
+  var maxT = Math.max(d.soc_temp || 0, d.temp || 0, d.chg_temp || 0);
+  $('batTemps').className = 'v ' + (maxT >= 50 ? 'r' : (maxT >= 44 ? 'y' : 'g'));
+
+  $('batHealth').textContent = (d.health || '?') + '分 ' + (d.health_rating || '')
+    + ' / ' + (d.cycle_count || '?') + '次';
+  $('batFull').textContent = (d.charge_full_mah || '?') + ' / ' + (d.design_mah || '?') + ' mAh';
+  $('batLife').textContent = (d.est_cycles_left || '?') + ' 次';
+
+  var lim = Number(d.charge_limit || 80);
+  var sus = d.suspend_active ? ('停充中(' + (d.suspend_reason || '') + ')') : '正常';
+  $('batLimit').textContent = lim + '% / ' + sus;
+  $('batLimit').className = 'v ' + (d.suspend_active ? 'y' : 'g');
+  $('sbLimit').value = lim;
+  $('vbLimit').textContent = lim + '%';
+
+  var tl = Number(d.temp_limit || 45);
+  $('sbTemp').value = tl;
+  $('vbTemp').textContent = tl + '°C';
+}
+
+$('sbLimit').addEventListener('input', function () { $('vbLimit').textContent = this.value + '%'; });
+$('sbTemp').addEventListener('input', function () { $('vbTemp').textContent = this.value + '°C'; });
+
+$('btnBatApply').onclick = async function () {
+  var lim = $('sbLimit').value, tl = $('sbTemp').value;
+  var r = await batFetch('/api/limit', 'charge_limit=' + lim + '&temp_limit=' + tl, 20000);
+  var ok = String(r).indexOf('ok') >= 0 || String(r).indexOf('OK') >= 0;
+  tip(ok ? $('okTip') : $('errTip'), '上限 ' + lim + '% / 保护 ' + tl + '°C 已应用', 3500);
+  setTimeout(loadBattery, 1200);
+};
+
+$('btnBatPause').onclick = async function () {
+  await batFetch('/api/pause', 'toggle=1', 18000);
+  tip($('okTip'), '已切换暂停状态', 2800);
+  setTimeout(loadBattery, 1200);
+};
+
+$('btnBatFull').onclick = async function () {
+  if (!confirm('充满一次？\n\n会临时忽略上限充到 100%。')) return;
+  await batFetch('/api/full', 'once=1', 18000);
+  tip($('okTip'), '已开启充满一次', 2800);
+  setTimeout(loadBattery, 1200);
+};
+
+$('btnBatCalib').onclick = async function () {
+  if (!confirm('电池校准？\n\n会记录当前电量作为校准点。')) return;
+  await batFetch('/api/calibrate', '{}', 18000);
+  tip($('okTip'), '校准已记录', 2800);
+};
+
+$('btnBatExport').onclick = async function () {
+  var BB = '/data/adb/ap/bin/busybox';
+  await execCmd(BB + ' wget -q -O /data/local/tmp/bat-export.json --timeout=10 '
+    + BAT_URL + '/api/export 2>/dev/null; ls -l /data/local/tmp/bat-export.json 2>/dev/null', 20000);
+  tip($('okTip'), '已导出到 /data/local/tmp/bat-export.json', 3500);
+};
+
+$('btnBatReload').onclick = function () {
+  $('batFrame').src = BAT_URL + '/?t=' + Date.now();
+  tip($('okTip'), '仪表盘已重载', 2000);
+};
+$('btnBatOpen').onclick = function () { window.open(BAT_URL + '/', '_blank'); };
+
+
+/* ===== 隐藏页（InkVault 融合）===== */
+async function loadInkvault() {
+  var r = await execCmd('sh ' + M + '/scripts/device.sh status 2>/dev/null', 20000);
+  var t = String(r.stdout || '');
+  if (!t || t.indexOf('{') !== 0) {
+    $('ivBadge').textContent = '读取失败';
+    $('ivBadge').style.color = 'var(--err)';
+  } else {
+    var d = {};
+    try { d = JSON.parse(t); } catch (e) { d = null; }
+    if (d) {
+      $('ivBadge').textContent = d.ok ? '正常' : '异常';
+      $('ivBadge').style.color = d.ok ? 'var(--ok)' : 'var(--err)';
+      $('ivSerial').textContent = d.serial || '–';
+      $('ivMac').textContent = d.mac || '–';
+      $('ivModel').textContent = (d.model || '?') + ' / ' + (d.marketname || '?');
+      $('ivBl').textContent = (d.bootloader || '?') + ' / vbmeta=' + (d.vbmeta || '?');
+      $('ivSe').textContent = d.selinux || '–';
+      $('ivSe').className = 'v ' + (d.selinux === 'Enforcing' ? 'g' : 'r');
+    }
+  }
+
+  var h = await execCmd('sh ' + M + '/scripts/hideenv.sh scan 2>/dev/null', 20000);
+  var ht = String(h.stdout || '');
+  if (ht.indexOf('{') === 0) {
+    try {
+      var hd = JSON.parse(ht);
+      var suTxt = (hd.su && hd.su.length) ? '暴露' : '隐藏';
+      var frTxt = (hd.frida && hd.frida.length) ? '暴露' : '隐藏';
+      $('ivSu').textContent = 'SU ' + suTxt + ' / Frida ' + frTxt;
+      $('ivSu').className = 'v ' + (suTxt === '暴露' || frTxt === '暴露' ? 'r' : 'g');
+    } catch (e) { }
+  }
+}
+
+$('btnIvScan').onclick = function () {
+  tip($('okTip'), '正在检测…', 1800);
+  loadInkvault();
+};
+
+$('btnIvFix').onclick = async function () {
+  if (!confirm('一键加固？\n\n执行：BL 伪装 + tmp 元数据清理 + SELinux 策略修复。')) return;
+  var b = this; b.disabled = true;
+  var o = b.textContent; b.textContent = '执行中…';
+  await execCmd('sh ' + M + '/scripts/envhide.sh hide-bl 2>&1;'
+    + 'sh ' + M + '/scripts/envhide.sh hide-tmp 2>&1;'
+    + 'sh ' + M + '/scripts/sepolicy.sh fix 2>&1', 45000);
+  tip($('okTip'), '加固完成', 3500);
+  b.disabled = false; b.textContent = o;
+  setTimeout(loadInkvault, 1500);
+};
+
+$('btnIvReload').onclick = function () {
+  $('ivFrame').src = 'inkvault/index.html?t=' + Date.now();
+  tip($('okTip'), '控制台已重载', 2000);
+};
+$('btnIvOpen').onclick = function () { window.open('inkvault/index.html', '_blank'); };
 
 /* 启动 */
 (async function(){
